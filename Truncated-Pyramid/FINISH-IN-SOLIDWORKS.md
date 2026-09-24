@@ -38,5 +38,6 @@ This gives the same frustum, but `Sketch2` and `Plane1` then go unused.
 | top view | outer square + inner square + **4 corner diagonals** |
 | front and left views | trapezoid, 100 at the base, 60 at the top, 100 high |
 
-The reference images in `images/` were generated from exact geometry by
-`tools/square_in_square_views.py`.
+The reference drawing `images/three-views.png` and `Truncated-Pyramid.step` were generated
+from an exact solid (OpenCascade loft) by `tools/strict_views.py`, which measured the same
+volume, 653,333.33 mm³.

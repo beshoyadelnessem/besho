@@ -1,28 +1,143 @@
 {
-  "Truncated-Pyramid": {
-    "volume_mm3": 653333.33,
-    "expected_mm3": 653333.33,
-    "volume_ok": true,
+  "Wedge-With-Square-Boss": {
+    "valid": true,
+    "volume_mm3": 608000.0,
     "bbox_mm": [
       100.0,
       100.0,
       100.0
     ],
-    "bbox_ok": true
+    "front": {
+      "extra_line_samples": 0,
+      "missing_square_samples": 0,
+      "dashed_line_samples": 0,
+      "exactly_two_squares": true
+    },
+    "left": {
+      "extra_line_samples": 0,
+      "missing_square_samples": 0,
+      "dashed_line_samples": 0,
+      "exactly_two_squares": true
+    },
+    "fits_both_given_views": true
+  },
+  "Wedge-With-Square-Notch": {
+    "valid": true,
+    "volume_mm3": 392000.0,
+    "bbox_mm": [
+      100.0,
+      100.0,
+      100.0
+    ],
+    "front": {
+      "extra_line_samples": 0,
+      "missing_square_samples": 0,
+      "dashed_line_samples": 0,
+      "exactly_two_squares": true
+    },
+    "left": {
+      "extra_line_samples": 0,
+      "missing_square_samples": 0,
+      "dashed_line_samples": 0,
+      "exactly_two_squares": true
+    },
+    "fits_both_given_views": true
   },
   "Cube-Two-Square-Holes": {
+    "valid": true,
     "volume_mm3": 496000.0,
-    "expected_mm3": 496000,
-    "volume_ok": true
+    "bbox_mm": [
+      100.0,
+      100.0,
+      100.0
+    ],
+    "front": {
+      "extra_line_samples": 152,
+      "missing_square_samples": 0,
+      "dashed_line_samples": 152,
+      "exactly_two_squares": false
+    },
+    "left": {
+      "extra_line_samples": 152,
+      "missing_square_samples": 0,
+      "dashed_line_samples": 152,
+      "exactly_two_squares": false
+    },
+    "fits_both_given_views": false
   },
   "Cube-Three-Square-Holes": {
+    "valid": true,
     "volume_mm3": 352000.0,
-    "expected_mm3": 352000,
-    "volume_ok": true
+    "bbox_mm": [
+      100.0,
+      100.0,
+      100.0
+    ],
+    "front": {
+      "extra_line_samples": 304,
+      "missing_square_samples": 0,
+      "dashed_line_samples": 304,
+      "exactly_two_squares": false
+    },
+    "left": {
+      "extra_line_samples": 304,
+      "missing_square_samples": 0,
+      "dashed_line_samples": 304,
+      "exactly_two_squares": false
+    },
+    "fits_both_given_views": false
   },
   "Block-Square-Boss": {
+    "valid": true,
     "volume_mm3": 872000.0,
-    "expected_mm3": 872000,
-    "volume_ok": true
+    "bbox_mm": [
+      100.0,
+      100.0,
+      100.0
+    ],
+    "front": {
+      "extra_line_samples": 0,
+      "missing_square_samples": 0,
+      "dashed_line_samples": 0,
+      "exactly_two_squares": true
+    },
+    "left": {
+      "extra_line_samples": 152,
+      "missing_square_samples": 261,
+      "dashed_line_samples": 0,
+      "exactly_two_squares": false
+    },
+    "fits_both_given_views": false
+  },
+  "Truncated-Pyramid (axis toward front)": {
+    "valid": true,
+    "volume_mm3": 653333.333,
+    "bbox_mm": [
+      100.0,
+      100.0,
+      100.0
+    ],
+    "front": {
+      "extra_line_samples": 176,
+      "missing_square_samples": 0,
+      "dashed_line_samples": 0,
+      "exactly_two_squares": false
+    },
+    "left": {
+      "extra_line_samples": 452,
+      "missing_square_samples": 484,
+      "dashed_line_samples": 0,
+      "exactly_two_squares": false
+    },
+    "fits_both_given_views": false
+  },
+  "Truncated-Pyramid (base on Top Plane)": {
+    "valid": true,
+    "volume_mm3": 653333.333,
+    "bbox_mm": [
+      100.0,
+      100.0,
+      100.0
+    ]
   }
 }
