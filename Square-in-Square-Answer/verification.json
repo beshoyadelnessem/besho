@@ -1,0 +1,28 @@
+{
+  "Truncated-Pyramid": {
+    "volume_mm3": 653333.33,
+    "expected_mm3": 653333.33,
+    "volume_ok": true,
+    "bbox_mm": [
+      100.0,
+      100.0,
+      100.0
+    ],
+    "bbox_ok": true
+  },
+  "Cube-Two-Square-Holes": {
+    "volume_mm3": 496000.0,
+    "expected_mm3": 496000,
+    "volume_ok": true
+  },
+  "Cube-Three-Square-Holes": {
+    "volume_mm3": 352000.0,
+    "expected_mm3": 352000,
+    "volume_ok": true
+  },
+  "Block-Square-Boss": {
+    "volume_mm3": 872000.0,
+    "expected_mm3": 872000,
+    "volume_ok": true
+  }
+}
