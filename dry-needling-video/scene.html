@@ -1,0 +1,453 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Supraspinatus Dry Needling</title>
+<style>
+  :root {
+    --bg: #F4EFE6; --panel: #FFFFFF; --line: #E2D9C8; --ink: #2B2A28; --muted: #6E675C;
+    --supra: #C4544A; --infra: #B5695D; --tmin: #A0786A; --bone: #EFE5D0; --bone-ink: #B3A27F;
+    --tp: #E0312B; --blue: #2F7BEA; --amber: #D97706; --green: #2E8B57;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { width: 1920px; height: 1080px; overflow: hidden; background: var(--bg);
+    font-family: "Inter", "DejaVu Sans", sans-serif; color: var(--ink); }
+  svg { position: absolute; inset: 0; }
+  .lbl { font: 600 22px Inter, sans-serif; fill: var(--ink); }
+  .lbl-s { font: 500 18px Inter, sans-serif; fill: var(--muted); }
+  .lbl-w { font: 700 19px Inter, sans-serif; fill: #fff; }
+  .lead { stroke: var(--ink); stroke-width: 1.5; fill: none; }
+  #header { position: absolute; left: 80px; top: 48px; display: flex; gap: 18px; align-items: center; }
+  #brand { font: 700 20px Inter; letter-spacing: .14em; color: var(--muted); }
+  .chip { position: absolute; left: 0; top: 0; white-space: nowrap; font: 700 20px Inter; padding: 7px 16px; border-radius: 999px;
+    background: var(--ink); color: #fff; }
+  #chips { position: relative; width: 300px; height: 40px; }
+  .card { position: absolute; left: 1190px; top: 150px; width: 660px; background: var(--panel); border: 1.5px solid var(--line);
+    border-radius: 22px; padding: 34px 38px; box-shadow: 0 10px 30px rgba(60,45,20,.07); }
+  .card h3 { font: 800 30px Inter; margin-bottom: 18px; }
+  .card ul { list-style: none; }
+  .card li { font: 500 23px/1.45 Inter; margin: 10px 0; padding-left: 26px; position: relative; color: #3a3833; }
+  .card li::before { content: ""; position: absolute; left: 0; top: 13px; width: 10px; height: 10px; border-radius: 50%; background: var(--supra); }
+  .card b { color: var(--ink); }
+  .card .src { font: 500 17px Inter; color: var(--muted); margin-top: 16px; }
+  #caption { position: absolute; left: 50%; bottom: 46px; transform: translateX(-50%); max-width: 1700px; text-align: center;
+    font: 800 33px/1.3 Inter; color: var(--ink); background: #fff; border: 1.5px solid var(--line); padding: 14px 30px; border-radius: 16px;
+    box-shadow: 0 8px 24px rgba(60,45,20,.08); }
+  #caption:empty { display: none; }
+  .overlay { position: absolute; inset: 0; background: var(--bg); display: flex; flex-direction: column; justify-content: center; padding: 0 140px; }
+  #title h1 { font: 800 92px/1.05 Inter; letter-spacing: -.02em; }
+  #title h1 span { color: var(--supra); }
+  #title p { font: 500 34px Inter; color: var(--muted); margin-top: 26px; }
+  #title small { font: 500 22px Inter; color: var(--muted); margin-top: 60px; }
+  #end h2 { font: 800 60px Inter; margin-bottom: 30px; }
+  #end h2 span { color: var(--supra); }
+  #end .pts { display: grid; grid-template-columns: 1fr 1fr; gap: 14px 50px; margin-bottom: 40px; }
+  #end .pts div { font: 600 27px/1.35 Inter; padding-left: 22px; border-left: 5px solid var(--supra); }
+  #end .warn { font: 700 26px Inter; color: #8a3b10; background: #FBE9D6; border-radius: 14px; padding: 16px 22px; margin-bottom: 30px; display: inline-block; }
+  #end .refs { font: 500 20px/1.5 Inter; color: var(--muted); }
+</style>
+</head>
+<body>
+<svg viewBox="0 0 1920 1080" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <pattern id="fibH" width="9" height="9" patternUnits="userSpaceOnUse" patternTransform="rotate(-14)">
+      <line x1="0" y1="4.5" x2="9" y2="4.5" stroke="rgba(255,255,255,.28)" stroke-width="1.6"/></pattern>
+    <pattern id="fibI" width="9" height="9" patternUnits="userSpaceOnUse" patternTransform="rotate(-28)">
+      <line x1="0" y1="4.5" x2="9" y2="4.5" stroke="rgba(255,255,255,.25)" stroke-width="1.6"/></pattern>
+    <pattern id="fibT" width="9" height="9" patternUnits="userSpaceOnUse" patternTransform="rotate(-48)">
+      <line x1="0" y1="4.5" x2="9" y2="4.5" stroke="rgba(255,255,255,.25)" stroke-width="1.6"/></pattern>
+    <pattern id="fibX" width="10" height="10" patternUnits="userSpaceOnUse">
+      <line x1="0" y1="5" x2="10" y2="5" stroke="rgba(255,255,255,.25)" stroke-width="1.6"/></pattern>
+    <pattern id="hatch" width="12" height="12" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+      <line x1="0" y1="0" x2="0" y2="12" stroke="rgba(217,119,6,.55)" stroke-width="4"/></pattern>
+    <radialGradient id="glow"><stop offset="0" stop-color="#FF3B30" stop-opacity="1"/><stop offset=".45" stop-color="#E0312B" stop-opacity=".75"/>
+      <stop offset="1" stop-color="#E0312B" stop-opacity="0"/></radialGradient>
+    <radialGradient id="zone"><stop offset="0" stop-color="#E0312B" stop-opacity=".62"/><stop offset=".7" stop-color="#E0312B" stop-opacity=".28"/>
+      <stop offset="1" stop-color="#E0312B" stop-opacity="0"/></radialGradient>
+    <radialGradient id="safe"><stop offset="0" stop-color="#2E8B57" stop-opacity=".35"/><stop offset="1" stop-color="#2E8B57" stop-opacity="0"/></radialGradient>
+    <linearGradient id="steel" x1="0" x2="1"><stop offset="0" stop-color="#6F7880"/><stop offset=".5" stop-color="#D8DEE3"/><stop offset="1" stop-color="#7E878F"/></linearGradient>
+    <clipPath id="cSupra"><path id="pSupraClip"/></clipPath>
+    <filter id="soft" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="3"/></filter>
+  </defs>
+
+  <!-- ================= MAIN STAGE: posterior view, right shoulder ================= -->
+  <g id="stage">
+    <!-- arm (rotates about glenohumeral joint for the abduction shot) -->
+    <g id="arm">
+      <path d="M885,282 Q978,330 972,455 L962,862 Q958,915 902,918 Q848,916 844,872 L828,545 Q822,470 842,428 Z"
+            fill="#E9DDC8" stroke="#D8C9AE" stroke-width="2" data-t="4.2"/>
+      <g id="humerus" data-t="4.6">
+        <path d="M832,420 Q846,405 870,410 L888,860 Q906,872 918,892 Q900,912 872,906 Q850,912 838,896 Q846,876 860,862 Z"
+              fill="var(--bone)" stroke="var(--bone-ink)" stroke-width="2.5"/>
+        <circle cx="850" cy="385" r="54" fill="var(--bone)" stroke="var(--bone-ink)" stroke-width="2.5"/>
+      </g>
+      <!-- referred pain zones (Travell & Simons pattern) -->
+      <g id="refZones">
+        <ellipse cx="918" cy="470" rx="58" ry="92" fill="url(#zone)"/>
+        <ellipse cx="926" cy="880" rx="40" ry="44" fill="url(#zone)"/>
+        <ellipse id="spill" cx="942" cy="690" rx="22" ry="150" fill="url(#zone)" opacity=".7"/>
+        <text x="990" y="470" class="lbl" fill="#B42318">Mid-deltoid ache</text>
+        <text x="990" y="888" class="lbl">Lateral epicondyle</text>
+      </g>
+    </g>
+
+    <!-- trunk silhouette -->
+    <path d="M110,120 Q300,104 520,160 Q740,220 886,282 Q850,330 842,428 Q822,470 828,545 Q806,760 812,940 L110,940 Z"
+          fill="#EDE3D1" stroke="#DCCDB2" stroke-width="2" data-t="4.0"/>
+    <line x1="120" y1="130" x2="120" y2="930" stroke="#CDBD9F" stroke-width="3" stroke-dasharray="4 10" data-t="4.0"/>
+    <text x="134" y="925" class="lbl-s" data-t="4.0,41">Spinous processes (midline)</text>
+
+    <!-- scapula -->
+    <path id="scap" d="M420,250 L650,288 Q670,306 690,290 L740,300 Q790,315 800,345 Q815,375 800,405 L790,420 Q700,600 540,820 Q520,836 505,815 Q440,600 405,400 Q400,320 420,250 Z"
+          fill="var(--bone)" stroke="var(--bone-ink)" stroke-width="3" data-draw="4.0,5.6"/>
+
+    <!-- muscles -->
+    <g id="muscles">
+      <g id="mInfra" data-t="7.2">
+        <path d="M412,410 L768,320 Q820,345 905,368 L905,395 Q820,400 770,430 Q700,560 600,662 L482,662 Q440,540 412,410 Z" fill="var(--infra)"/>
+        <path d="M412,410 L768,320 Q820,345 905,368 L905,395 Q820,400 770,430 Q700,560 600,662 L482,662 Q440,540 412,410 Z" fill="url(#fibI)"/>
+      </g>
+      <g id="mTmin" data-t="8.6">
+        <path d="M772,432 Q822,408 904,400 L900,428 Q822,444 764,504 Q706,602 646,694 L604,666 Q700,562 772,432 Z" fill="var(--tmin)"/>
+        <path d="M772,432 Q822,408 904,400 L900,428 Q822,444 764,504 Q706,602 646,694 L604,666 Q700,562 772,432 Z" fill="url(#fibT)"/>
+      </g>
+      <!-- spine of scapula + acromion drawn over infraspinatus -->
+      <path d="M404,388 L752,286 L772,318 L412,412 Z" fill="#E6D9BC" stroke="var(--bone-ink)" stroke-width="2.5" data-t="4.8"/>
+      <g id="mSupra" data-t="5.8">
+        <path id="pSupra" d="M420,254 L650,291 Q670,309 690,293 L742,303 Q800,318 896,330 L902,356 Q820,350 770,322 L752,290 L406,388 Q403,330 420,254 Z" fill="var(--supra)"/>
+        <path d="M420,254 L650,291 Q670,309 690,293 L742,303 Q800,318 896,330 L902,356 Q820,350 770,322 L752,290 L406,388 Q403,330 420,254 Z" fill="url(#fibH)"/>
+        <!-- taut band -->
+        <path id="band" d="M470,336 Q560,318 690,304" stroke="#8E2A22" stroke-width="13" stroke-linecap="round" fill="none" opacity="0"/>
+      </g>
+      <path id="acrom" d="M742,284 Q820,238 896,260 Q918,285 890,314 Q830,332 772,322 Z" fill="#E6D9BC" stroke="var(--bone-ink)" stroke-width="2.5" data-t="4.8"/>
+    </g>
+
+    <!-- muscle labels -->
+    <g data-t="6.4,16.5"><path class="lead" d="M300,214 L470,290"/><text x="140" y="208" class="lbl" fill="var(--supra)">Supraspinatus</text></g>
+    <g data-t="7.8,16.5"><path class="lead" d="M300,560 L520,520"/><text x="150" y="568" class="lbl">Infraspinatus</text></g>
+    <g data-t="9.2,16.5"><path class="lead" d="M712,752 L660,652"/><text x="672" y="782" class="lbl">Teres minor</text></g>
+
+    <!-- landmark labels -->
+    <g id="landmarks">
+      <g data-t="17.4,23.5"><path class="lead" d="M300,452 L440,398"/><text x="132" y="472" class="lbl">Spine of scapula</text></g>
+      <g data-t="17.9,23.5"><path class="lead" d="M560,180 L560,272"/><text x="470" y="170" class="lbl">Superior border</text></g>
+      <g data-t="18.4,23.5"><path class="lead" d="M300,214 L414,252"/><text x="128" y="208" class="lbl">Superior angle</text></g>
+      <g data-t="18.9,23.5"><path class="lead" d="M880,200 L860,256"/><text x="822" y="190" class="lbl">Acromion</text></g>
+      <path id="spineLine" d="M410,398 L760,302" stroke="var(--blue)" stroke-width="4" stroke-dasharray="10 8" fill="none" data-draw="17.4,18.6" data-t="17.4,23.5"/>
+    </g>
+
+    <!-- safe target zone -->
+    <ellipse id="safeZone" cx="560" cy="322" rx="78" ry="30" transform="rotate(-12 560 322)" fill="url(#safe)" stroke="var(--green)" stroke-width="2.5" stroke-dasharray="8 6" opacity="0"/>
+    <text id="safeTxt" x="140" y="168" class="lbl" fill="var(--green)" opacity="0">Target: mid-belly, 1–2 cm above spine</text>
+
+    <!-- trigger point -->
+    <g id="tp" opacity="0">
+      <circle id="tpGlow" cx="560" cy="322" r="40" fill="url(#glow)"/>
+      <circle id="tpCore" cx="560" cy="322" r="9" fill="#FF2D20" stroke="#fff" stroke-width="2.5"/>
+    </g>
+    <g id="tpLbl" data-t="11.6,16.5"><path class="lead" d="M610,236 L572,308"/><text x="560" y="226" class="lbl" fill="var(--tp)">Trigger point (mid-belly)</text></g>
+
+    <!-- referred pain pathways -->
+    <path id="ref1" d="M572,316 Q770,250 912,440" stroke="#E0312B" stroke-width="4" stroke-dasharray="3 9" stroke-linecap="round" fill="none" data-draw="12.6,13.8" data-t="12.6,16.8"/>
+    <path id="ref2" d="M922,520 Q962,700 926,860" stroke="#E0312B" stroke-width="4" stroke-dasharray="3 9" stroke-linecap="round" fill="none" data-draw="13.8,15.0" data-t="13.8,16.8"/>
+
+    <!-- palpating fingertips (gloved) -->
+    <g id="fingers" opacity="0">
+      <ellipse id="f1" cx="532" cy="318" rx="24" ry="34" fill="#5B8DEF" fill-opacity=".85" stroke="#2E5FBF" stroke-width="2" transform="rotate(-12 532 318)"/>
+      <ellipse id="f2" cx="590" cy="312" rx="24" ry="34" fill="#5B8DEF" fill-opacity=".85" stroke="#2E5FBF" stroke-width="2" transform="rotate(-12 590 312)"/>
+    </g>
+
+    <!-- suprascapular notch / nerve danger -->
+    <g id="danger" opacity="0">
+      <path d="M600,282 L760,300 L760,286 L604,262 Z" fill="url(#hatch)"/>
+      <path d="M672,250 Q676,296 684,302 Q740,330 786,350" stroke="#E2B400" stroke-width="5" fill="none" stroke-linecap="round"/>
+      <circle id="notchRing" cx="672" cy="300" r="26" fill="none" stroke="var(--amber)" stroke-width="4"/>
+      <path class="lead" d="M700,200 L676,276"/><text x="640" y="160" class="lbl" fill="var(--amber)">Suprascapular notch</text>
+      <text x="640" y="188" class="lbl-s">suprascapular nerve + artery</text>
+    </g>
+
+    <!-- needle (main view, stylised) -->
+    <g id="needleMain" opacity="0">
+      <circle id="dimple" cx="560" cy="322" r="11" fill="none" stroke="#7a2a22" stroke-width="2" opacity="0"/>
+      <g id="nm">
+        <line x1="560" y1="322" x2="580" y2="190" stroke="url(#steel)" stroke-width="3.2"/>
+        <rect x="574" y="120" width="13" height="72" rx="3" fill="#B87333" transform="rotate(8.6 580 190)"/>
+        <rect x="572" y="112" width="17" height="10" rx="3" fill="#8C5525" transform="rotate(8.6 580 190)"/>
+      </g>
+    </g>
+
+    <!-- blood-flow particles -->
+    <g id="particles"></g>
+  </g>
+
+  <!-- ================= CROSS-SECTION PANEL ================= -->
+  <g id="xsec" opacity="0">
+    <rect x="1180" y="130" width="690" height="790" rx="22" fill="#fff" stroke="var(--line)" stroke-width="1.5"/>
+    <text x="1214" y="184" style="font:800 28px Inter" fill="var(--ink)">Cross-section at insertion point</text>
+    <text x="1214" y="214" class="lbl-s">Schematic, not to scale · patient prone</text>
+    <clipPath id="cBox"><rect x="1214" y="250" width="622" height="590" rx="10"/></clipPath>
+    <g clip-path="url(#cBox)">
+      <rect x="1214" y="250" width="622" height="590" fill="#FAF7F1"/>
+      <!-- lung apex / thoracic -->
+      <path d="M1214,770 Q1520,712 1700,652 Q1790,622 1836,600 L1836,840 L1214,840 Z" fill="#D7E7F7" stroke="#9DBFE3" stroke-width="2"/>
+      <!-- subscapularis -->
+      <path d="M1290,628 Q1330,650 1400,652 L1640,642 Q1700,630 1726,592 L1736,604 Q1712,664 1640,672 L1400,684 Q1310,680 1286,640 Z" fill="#B98A80"/>
+      <!-- bone: fossa floor rising to spine of scapula on the left, thin edge at superior border on the right -->
+      <path d="M1214,438 Q1290,430 1306,500 Q1322,598 1400,610 L1640,600 Q1690,596 1708,564 L1718,572 Q1702,620 1640,624 L1400,634 Q1300,640 1214,640 Z"
+            fill="var(--bone)" stroke="var(--bone-ink)" stroke-width="2.5"/>
+      <path d="M1700,432 L1836,432 L1836,600 Q1790,622 1730,640 Q1716,600 1718,572 Q1734,500 1700,432 Z" fill="#EADBC8"/>
+      <!-- supraspinatus -->
+      <path d="M1306,432 L1736,432 Q1726,520 1712,560 Q1690,596 1640,600 L1400,610 Q1322,598 1306,500 Z" fill="var(--supra)"/>
+      <path d="M1306,432 L1736,432 Q1726,520 1712,560 Q1690,596 1640,600 L1400,610 Q1322,598 1306,500 Z" fill="url(#fibX)"/>
+      <!-- trapezius, subcut, skin -->
+      <rect x="1214" y="372" width="622" height="60" fill="#9C5A4E"/>
+      <rect x="1214" y="372" width="622" height="60" fill="url(#fibX)"/>
+      <rect x="1214" y="344" width="622" height="28" fill="#F3DDB0"/>
+      <rect x="1214" y="330" width="622" height="14" fill="#E4B89A"/>
+      <line x1="1214" y1="330" x2="1836" y2="330" stroke="#B98463" stroke-width="2"/>
+      <!-- small TP in section -->
+      <circle id="xTP" cx="1470" cy="520" r="26" fill="url(#glow)" opacity="0"/>
+    </g>
+    <!-- layer labels -->
+    <text x="1600" y="324" class="lbl-s" fill="var(--ink)">Skin</text>
+    <text x="1600" y="365" class="lbl-s" fill="#6b5a2e">Subcutaneous tissue</text>
+    <text x="1600" y="410" class="lbl-w">Upper trapezius</text>
+    <text x="1572" y="575" class="lbl-w">Supraspinatus</text>
+    <text x="1222" y="700" style="font:700 19px Inter" fill="var(--ink)">Bone = backstop</text>
+    <text x="1446" y="666" style="font:600 17px Inter" fill="#fff">Subscapularis</text>
+    <text x="1500" y="790" class="lbl" fill="#3C6E9E">Thorax · lung apex</text>
+    <text x="1222" y="425" style="font:600 16px Inter" fill="#fff" opacity="0">.</text>
+    <text x="1224" y="876" class="lbl-s">← caudal: spine of scapula</text>
+    <text x="1580" y="876" class="lbl-s">superior border →</text>
+    <!-- depth bracket -->
+    <g id="depth" opacity="0">
+      <path d="M1530,332 L1544,332 L1544,604 L1530,604" stroke="var(--ink)" stroke-width="2" fill="none"/>
+      <text x="1554" y="470" style="font:700 20px Inter" fill="var(--ink)" opacity="0">.</text>
+    </g>
+    <g id="depthTxt" opacity="0"><text x="1556" y="476" style="font:800 24px Inter" fill="#fff">≈ 3–5 cm</text><text x="1556" y="502" style="font:600 16px Inter" fill="#fff">to bone (varies)</text></g>
+    <!-- danger path -->
+    <g id="xDanger" opacity="0">
+      <path d="M1640,300 L1770,700" stroke="var(--tp)" stroke-width="4" stroke-dasharray="10 8"/>
+      <path d="M1752,684 l36,36 M1788,684 l-36,36" stroke="var(--tp)" stroke-width="6" stroke-linecap="round"/>
+      <text x="1600" y="292" style="font:800 19px Inter" fill="var(--tp)">✕ no anterior angle</text>
+    </g>
+    <!-- needle in section -->
+    <clipPath id="cNeedle"><rect x="1214" y="236" width="622" height="604"/></clipPath>
+    <g id="xNeedle" clip-path="url(#cNeedle)">
+      <line id="xShaft" stroke="url(#steel)" stroke-width="4"/>
+      <line id="xHandle" stroke="#B87333" stroke-width="15" stroke-linecap="round"/>
+      <line id="xCap" stroke="#8C5525" stroke-width="19" stroke-linecap="round"/>
+    </g>
+  </g>
+</svg>
+
+<div id="header"><div id="brand">DRY NEEDLING · SUPRASPINATUS</div>
+  <div id="chips">
+    <div class="chip" data-t="4,11">01 · Anatomy</div>
+    <div class="chip" data-t="11,17">02 · Trigger point</div>
+    <div class="chip" data-t="17,23.5">03 · Landmarks</div>
+    <div class="chip" data-t="23.5,32">04 · Insertion</div>
+    <div class="chip" data-t="32,37">05 · Safety</div>
+    <div class="chip" data-t="37,41">06 · Response</div>
+    <div class="chip" data-t="41,44.6">07 · Re-assess</div>
+  </div>
+</div>
+
+<div class="card" data-t="5,11">
+  <h3>Posterior rotator cuff</h3>
+  <ul>
+    <li><b>Supraspinatus</b> — supraspinous fossa → greater tubercle (superior facet). Initiates abduction, centres the humeral head.</li>
+    <li><b>Infraspinatus</b> — infraspinous fossa → greater tubercle (middle facet). External rotation.</li>
+    <li><b>Teres minor</b> — lateral border → greater tubercle (inferior facet). External rotation.</li>
+    <li>Nerves: suprascapular (C5–6) for supra- &amp; infraspinatus; axillary for teres minor.</li>
+  </ul>
+</div>
+<div class="card" data-t="11,17">
+  <h3>Referred pain pattern</h3>
+  <ul>
+    <li>Deep ache over the <b>mid-deltoid region</b></li>
+    <li>May spill down the lateral arm</li>
+    <li>Often concentrates at the <b>lateral epicondyle</b></li>
+    <li>Aggravated by abduction; dull ache at rest / night</li>
+  </ul>
+  <div class="src">Travell, Simons &amp; Simons' Trigger Point Manual, 3rd ed.</div>
+</div>
+<div class="card" data-t="17,23.5">
+  <h3>Palpation</h3>
+  <ul>
+    <li>Patient <b>prone</b>, arm relaxed by the side</li>
+    <li>Trace the <b>spine of scapula</b> to the acromion; find the superior border &amp; superior angle</li>
+    <li><b>Flat palpation</b> in the fossa, across the fibres</li>
+    <li>Taut band + tender spot that reproduces the patient's familiar pain</li>
+  </ul>
+</div>
+<div class="card" data-t="37,41.3">
+  <h3>Response &amp; aftercare</h3>
+  <ul>
+    <li><b>Local twitch response</b> (LTR) confirms the trigger point</li>
+    <li>Proposed effects: ↓ muscle tension, ↑ local blood flow, ↓ nociceptive input</li>
+    <li>Post-needling soreness for 24–48 h is common</li>
+    <li>Re-assess pain &amp; abduction range immediately</li>
+  </ul>
+</div>
+
+<div id="caption"></div>
+
+<div class="overlay" id="title">
+  <h1>Dry needling of the<br><span>supraspinatus</span></h1>
+  <p>Landmarks · insertion point · safety — for physiotherapy students</p>
+  <small>Schematic medical illustration · not to scale</small>
+</div>
+
+<div class="overlay" id="end">
+  <h2>Supraspinatus dry needling — <span>key points</span></h2>
+  <div class="pts">
+    <div>Prone, arm by the side</div>
+    <div>Mid-belly, 1–2 cm above the spine of scapula</div>
+    <div>Perpendicular, aimed caudally to the fossa floor</div>
+    <div>Bone is the backstop</div>
+    <div>Stay away from the suprascapular notch</div>
+    <div>Never angle anteriorly over the superior border</div>
+  </div>
+  <div class="warn">⚠ Educational use only — practise only after accredited training, under supervision.</div>
+  <div class="refs">
+    Donnelly JM et al. <i>Travell, Simons &amp; Simons' Myofascial Pain and Dysfunction: The Trigger Point Manual</i>, 3rd ed. Wolters Kluwer, 2019.<br>
+    Dommerholt J, Fernández-de-las-Peñas C. <i>Trigger Point Dry Needling: An Evidence and Clinical-Based Approach</i>, 2nd ed. Elsevier.
+  </div>
+</div>
+
+<script>
+const CAPS = [
+  [4.3, 7.4, "Supraspinatus fills the supraspinous fossa — above the spine of the scapula."],
+  [7.4, 11, "Infraspinatus and teres minor lie below the spine."],
+  [11, 13.6, "Trigger points often sit in the mid-belly of supraspinatus."],
+  [13.6, 17, "Referred pain: deep mid-deltoid ache → lateral arm → lateral epicondyle."],
+  [17, 20.2, "Landmarks: spine of scapula, superior border, superior angle, acromion."],
+  [20.2, 23.5, "Flat palpation: find the taut band between the spine (below) and the superior border (above)."],
+  [23.5, 26.4, "Insert 1–2 cm above the spine, medial-to-middle third, into the mid-belly."],
+  [26.4, 29.3, "Perpendicular to the skin, aimed caudally toward the fossa floor — bone is your backstop."],
+  [29.3, 32, "Typical needle 0.25–0.30 × 40–60 mm, passing through upper trapezius first."],
+  [32, 34.5, "Avoid the suprascapular notch — suprascapular nerve and artery."],
+  [34.5, 37, "Never angle anteriorly over the superior border — risk of pneumothorax."],
+  [37, 39.2, "Fast-in / fast-out pistoning → local twitch response."],
+  [39.2, 41, "The band releases; local blood flow increases."],
+  [41, 44.6, "Re-assess: pain-free abduction and improved range."],
+];
+const clamp = (x, a = 0, b = 1) => Math.min(b, Math.max(a, x));
+const ease = x => { x = clamp(x); return x < .5 ? 2 * x * x : 1 - Math.pow(-2 * x + 2, 2) / 2; };
+const prog = (t, a, b) => ease((t - a) / (b - a));
+const vis = (t, a, b = 1e9, f = .45) => Math.min(prog(t, a, a + f), 1 - prog(t, b - f, b));
+const $ = id => document.getElementById(id);
+
+const timed = [...document.querySelectorAll('[data-t]')].map(el => {
+  const [a, b] = el.dataset.t.split(',').map(Number); return { el, a, b: isNaN(b) ? 1e9 : b };
+});
+const draws = [...document.querySelectorAll('[data-draw]')].map(el => {
+  const [a, b] = el.dataset.draw.split(',').map(Number); const L = el.getTotalLength();
+  const dash = el.getAttribute('stroke-dasharray'); return { el, a, b, L, dash };
+});
+const parts = [];
+for (let i = 0; i < 46; i++) {
+  const c = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+  c.setAttribute('r', 3 + (i % 3)); c.setAttribute('fill', '#2F7BEA');
+  $('particles').appendChild(c);
+  parts.push({ c, off: (i * 0.137) % 1, lane: ((i * 37) % 11) / 10 - .5, sp: .35 + (i % 5) * .05 });
+}
+// supraspinatus flow line: medial fossa -> tendon
+const flow = u => { const x = 430 + u * 450; const top = 262 + u * 70; const bot = 386 - u * 40; return [x, top, bot]; };
+
+window.render = function (t) {
+  for (const { el, a, b } of timed) el.style.opacity = vis(t, a, b);
+  for (const d of draws) {
+    const p = prog(t, d.a, d.b);
+    if (d.dash) {
+      // dashed path: reveal progressively by truncating the repeated dash pattern
+      d.el.style.strokeDasharray = makeDash(d.dash, d.L * p, d.L);
+    } else { d.el.style.strokeDasharray = d.L; d.el.style.strokeDashoffset = d.L * (1 - p);
+      d.el.style.fillOpacity = prog(t, d.b - .3, d.b + .3); }
+  }
+  // title / end overlays
+  $('title').style.opacity = 1 - prog(t, 3.4, 4.1);
+  $('end').style.opacity = prog(t, 44.6, 45.3);
+  // captions
+  const cap = CAPS.find(c => t >= c[0] && t < c[1]);
+  $('caption').textContent = cap ? cap[2] : '';
+  $('caption').style.opacity = cap ? Math.min(prog(t, cap[0], cap[0] + .25), 1 - prog(t, cap[1] - .2, cap[1])) : 0;
+
+  // trigger point
+  const tpOn = vis(t, 11, 40.6, .5) * (1 - prog(t, 39.0, 40.6));
+  $('tp').style.opacity = tpOn;
+  const pulse = 1 + .18 * Math.sin(t * 5.2);
+  $('tpGlow').setAttribute('r', 40 * pulse * (1 - .6 * prog(t, 39, 40.6)));
+  $('refZones').style.opacity = vis(t, 13.0, 17.0, .6);
+
+  // taut band + palpation
+  $('band').setAttribute('opacity', .55 * vis(t, 20.2, 24.5) * (1 - prog(t, 39, 40.4)));
+  $('fingers').style.opacity = vis(t, 20.0, 24.0);
+  const strum = 7 * Math.sin((t - 20) * 5);
+  $('f1').setAttribute('transform', `translate(0 ${strum}) rotate(-12 532 318)`);
+  $('f2').setAttribute('transform', `translate(0 ${strum}) rotate(-12 590 312)`);
+
+  // target zone
+  $('safeZone').setAttribute('opacity', vis(t, 23.5, 37));
+  $('safeTxt').setAttribute('opacity', vis(t, 23.8, 32));
+
+  // main needle
+  const ins = prog(t, 24.2, 25.4);
+  $('needleMain').style.opacity = vis(t, 23.8, 40.2);
+  const piston = (t > 37.2 && t < 39) ? 6 * Math.max(0, Math.sin((t - 37.2) * 22)) : 0;
+  const lift = (1 - ins) * 46 - piston;
+  $('nm').setAttribute('transform', `translate(${lift * 0.15} ${-lift})`);
+  $('dimple').setAttribute('opacity', ins > .98 ? .8 : 0);
+
+  // cross-section
+  $('xsec').style.opacity = vis(t, 23.5, 37.0);
+  const tipY = 300 + 300 * prog(t, 25.0, 28.6) - piston * 2.2;
+  const tipX = 1478 - 16 * ((tipY - 300) / 300);
+  const dx = 18 / 270, L1 = 300;
+  const ex = tipX + dx * L1, ey = tipY - L1;
+  $('xShaft').setAttribute('x1', tipX); $('xShaft').setAttribute('y1', tipY);
+  $('xShaft').setAttribute('x2', ex); $('xShaft').setAttribute('y2', ey);
+  $('xHandle').setAttribute('x1', ex); $('xHandle').setAttribute('y1', ey);
+  $('xHandle').setAttribute('x2', ex + dx * 80); $('xHandle').setAttribute('y2', ey - 80);
+  $('xCap').setAttribute('x1', ex + dx * 80); $('xCap').setAttribute('y1', ey - 80);
+  $('xCap').setAttribute('x2', ex + dx * 90); $('xCap').setAttribute('y2', ey - 90);
+  $('xTP').setAttribute('opacity', vis(t, 24, 37));
+  $('depth').style.opacity = vis(t, 28.4, 37);
+  $('depthTxt').style.opacity = vis(t, 28.4, 37);
+  $('xDanger').style.opacity = vis(t, 34.4, 37);
+
+  // safety highlight on main view
+  $('danger').style.opacity = vis(t, 32, 37.2);
+  $('notchRing').setAttribute('r', 26 + 5 * Math.sin(t * 6));
+
+  // twitch
+  let tw = 0;
+  if (t > 37.4 && t < 39.2) tw = .035 * Math.sin((t - 37.4) * 38) * (1 - (t - 37.4) / 1.8);
+  $('mSupra').setAttribute('transform', `translate(560 322) scale(${1 + tw} ${1 - tw * 1.6}) translate(-560 -322)`);
+
+  // blood-flow particles
+  const pOn = vis(t, 38.6, 42.0, .6);
+  parts.forEach(p => {
+    const u = (p.off + (t - 38.6) * p.sp) % 1; const [x, top, bot] = flow(u);
+    const y = (top + bot) / 2 + p.lane * (bot - top) * .8;
+    p.c.setAttribute('cx', x); p.c.setAttribute('cy', y);
+    p.c.setAttribute('opacity', pOn * Math.sin(Math.PI * u) * .85);
+  });
+
+  // abduction
+  const ab = prog(t, 41.2, 43.6);
+  $('arm').setAttribute('transform', `rotate(${-115 * ab} 850 385)`);
+  $('muscles').style.opacity = 1 - .45 * prog(t, 41, 41.6);
+};
+function makeDash(dash, vis, L) {
+  // repeat the dash pattern up to `vis`, then a long gap
+  const pat = dash.split(/[ ,]+/).map(Number); const out = []; let s = 0, i = 0;
+  while (s < vis && out.length < 4000) { const v = pat[i % pat.length]; out.push(Math.min(v, vis - s)); s += v; i++; }
+  if (out.length % 2 === 1) out.push(L + 10); else out.push(0, L + 10);
+  return out.join(' ');
+}
+window.render(0);
+</script>
+</body>
+</html>
