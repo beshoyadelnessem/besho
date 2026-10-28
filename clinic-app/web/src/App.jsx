@@ -43,7 +43,7 @@ export default function App() {
   if (me.role === 'patient') {
     if (!me.onboarded || hash === 'profile') return <Onboarding me={me} editing={me.onboarded} onSaved={() => { reload(); go(''); }} />;
     if (hash.startsWith('ex-')) return <ExerciseView id={hash.slice(3)} look={look} library={library} go={go} />;
-    if (hash === 'settings') return <PatientSettings me={me} reload={reload} go={go} />;
+    if (hash === 'prefs') return <PatientSettings me={me} reload={reload} go={go} />;
     return <PatientHome me={me} look={look} library={library} go={go} />;
   }
   if (hash.startsWith('patient-')) return <StaffPatient me={me} id={hash.slice(8)} library={library} go={go} />;

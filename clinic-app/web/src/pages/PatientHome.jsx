@@ -36,7 +36,7 @@ export default function PatientHome({ me, look, library, go }) {
         <div className="logo"><svg width="22" height="22" viewBox="0 0 24 24"><path d="M12 3v18M3 12h18" stroke="var(--on-teal)" strokeWidth="4" strokeLinecap="round" /></svg></div>
         <div><b>أهلاً يا {me.full_name.split(' ')[0]}</b><div className="muted small">{dateLabel(todayISO())}</div></div>
         {api.demo && <span className="demo-badge">تجريبي</span>}
-        <button className="btn ghost" style={{ marginInlineStart: api.demo ? 0 : 'auto' }} onClick={() => go('settings')} aria-label="الإعدادات">⚙︎</button>
+        <button className="btn ghost" style={{ marginInlineStart: api.demo ? 0 : 'auto' }} onClick={() => go('prefs')} aria-label="الإعدادات">⚙︎</button>
       </div>
 
       {streak && (
