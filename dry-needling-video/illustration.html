@@ -1,0 +1,192 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Supraspinatus Needling Atlas</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { width: 1920px; height: 1200px; background: #F6F1E8; font-family: Inter, "DejaVu Sans", sans-serif; overflow: hidden; }
+  svg { position: absolute; inset: 0; }
+  .t { font: 600 19px Inter; fill: #2B2A28; }
+  .ts { font: 500 15px Inter; fill: #5f584d; }
+  .tw { font: 700 17px Inter; fill: #fff; }
+  .lead { stroke: #2B2A28; stroke-width: 1.4; fill: none; }
+</style>
+</head>
+<body>
+<svg viewBox="0 0 1920 1200" xmlns="http://www.w3.org/2000/svg">
+<defs>
+  <linearGradient id="bone" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#FBF5E6"/><stop offset="1" stop-color="#E3D5B5"/></linearGradient>
+  <linearGradient id="boneD" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#F7EEDA"/><stop offset="1" stop-color="#D9C8A2"/></linearGradient>
+  <linearGradient id="mS" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#B8463D"/><stop offset=".7" stop-color="#CF5A4F"/><stop offset="1" stop-color="#E8D9C6"/></linearGradient>
+  <linearGradient id="mI" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#A9564B"/><stop offset=".72" stop-color="#BF6457"/><stop offset="1" stop-color="#E8D9C6"/></linearGradient>
+  <linearGradient id="mT" x1="0" y1="1" x2="1" y2="0"><stop offset="0" stop-color="#9C6A5C"/><stop offset=".75" stop-color="#AE7A6A"/><stop offset="1" stop-color="#E8D9C6"/></linearGradient>
+  <linearGradient id="mM" x1="0" y1="1" x2="1" y2="0"><stop offset="0" stop-color="#8E5C50"/><stop offset="1" stop-color="#A86F60"/></linearGradient>
+  <pattern id="f1" width="8" height="8" patternUnits="userSpaceOnUse" patternTransform="rotate(-12)"><line x1="0" y1="4" x2="8" y2="4" stroke="rgba(255,255,255,.22)" stroke-width="1.4"/></pattern>
+  <pattern id="f2" width="8" height="8" patternUnits="userSpaceOnUse" patternTransform="rotate(-22)"><line x1="0" y1="4" x2="8" y2="4" stroke="rgba(255,255,255,.2)" stroke-width="1.4"/></pattern>
+  <pattern id="f3" width="8" height="8" patternUnits="userSpaceOnUse" patternTransform="rotate(-50)"><line x1="0" y1="4" x2="8" y2="4" stroke="rgba(255,255,255,.2)" stroke-width="1.4"/></pattern>
+  <pattern id="fx" width="9" height="9" patternUnits="userSpaceOnUse"><line x1="0" y1="4.5" x2="9" y2="4.5" stroke="rgba(255,255,255,.22)" stroke-width="1.4"/></pattern>
+  <pattern id="hatch" width="10" height="10" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><line x1="0" y1="0" x2="0" y2="10" stroke="rgba(217,119,6,.5)" stroke-width="3.5"/></pattern>
+  <radialGradient id="safe"><stop offset="0" stop-color="#2E8B57" stop-opacity=".35"/><stop offset="1" stop-color="#2E8B57" stop-opacity=".05"/></radialGradient>
+  <linearGradient id="steel" x1="0" x2="1"><stop offset="0" stop-color="#6F7880"/><stop offset=".5" stop-color="#E2E7EB"/><stop offset="1" stop-color="#7E878F"/></linearGradient>
+  <filter id="sh" x="-20%" y="-20%" width="140%" height="140%"><feDropShadow dx="0" dy="3" stdDeviation="4" flood-opacity=".18"/></filter>
+</defs>
+
+<text x="48" y="64" style="font:800 38px Inter" fill="#2B2A28">Supraspinatus dry needling</text>
+<text x="48" y="98" style="font:500 21px Inter" fill="#6E675C">Right shoulder, posterior view · patient prone, arm by the side · schematic, proportions after an adult scapula</text>
+
+<!-- ================= MAIN POSTERIOR VIEW ================= -->
+<rect x="32" y="122" width="1150" height="930" rx="22" fill="#FFFDF9" stroke="#E2D9C8"/>
+<!-- midline -->
+<line x1="270" y1="150" x2="270" y2="1030" stroke="#C9B996" stroke-width="3" stroke-dasharray="3 9"/>
+<text x="282" y="1020" class="ts">Midline (spinous processes)</text>
+<g transform="translate(0,20)">
+<!-- humerus -->
+<path d="M932,410 L992,410 Q1000,700 1008,990 L944,990 Q940,700 932,410 Z" fill="url(#boneD)" stroke="#B3A27F" stroke-width="2.5"/>
+<circle cx="958" cy="352" r="60" fill="url(#bone)" stroke="#B3A27F" stroke-width="2.5"/>
+<path d="M1000,312 Q1026,340 1022,404 Q1006,418 990,410" fill="url(#bone)" stroke="#B3A27F" stroke-width="2.5"/>
+<!-- coracoid (anterior, peeking above superior border) -->
+<path d="M792,262 Q800,232 828,226 Q858,224 866,240 Q850,240 832,246 Q816,256 812,270 Z" fill="#E9DDBF" stroke="#B3A27F" stroke-width="2" opacity=".85"/>
+<!-- scapula posterior surface -->
+<path id="scap" d="M520,228 Q560,226 640,238 L748,256 Q758,258 762,268 Q770,284 780,270 L792,262 Q860,268 888,296 Q912,300 914,330 Q916,372 902,404 Q890,414 878,420 Q830,560 720,700 Q650,790 612,836 Q596,850 584,832 Q548,700 512,560 Q496,470 500,400 Q502,300 520,228 Z"
+      fill="url(#bone)" stroke="#B3A27F" stroke-width="3"/>
+
+<!-- muscles -->
+<!-- teres major -->
+<path d="M586,830 Q596,768 648,744 Q706,716 762,640 L786,660 Q866,628 946,552 L962,604 Q846,708 704,806 Q640,852 586,830 Z" fill="url(#mM)"/>
+<path d="M586,830 Q596,768 648,744 Q706,716 762,640 L786,660 Q866,628 946,552 L962,604 Q846,708 704,806 Q640,852 586,830 Z" fill="url(#f3)"/>
+<!-- infraspinatus -->
+<path d="M506,420 L848,342 Q872,352 902,360 L1018,356 Q1026,372 1020,392 L962,396 Q904,402 880,426 Q832,522 762,614 Q702,684 644,742 Q604,770 566,742 Q522,600 506,420 Z" fill="url(#mI)"/>
+<path d="M506,420 L848,342 Q872,352 902,360 L1018,356 Q1026,372 1020,392 L962,396 Q904,402 880,426 Q832,522 762,614 Q702,684 644,742 Q604,770 566,742 Q522,600 506,420 Z" fill="url(#f2)"/>
+<!-- teres minor -->
+<path d="M880,426 Q904,402 962,398 L1020,394 L1016,424 Q940,430 900,452 Q840,556 784,648 L760,624 Q828,532 880,426 Z" fill="url(#mT)"/>
+<path d="M880,426 Q904,402 962,398 L1020,394 L1016,424 Q940,430 900,452 Q840,556 784,648 L760,624 Q828,532 880,426 Z" fill="url(#f3)"/>
+<!-- long head of triceps (between teres minor and major) -->
+<path d="M884,418 Q906,410 922,432 L968,620 Q952,760 948,990 L884,990 Q884,760 902,612 Z" fill="#B47F70" opacity=".93"/>
+<!-- supraspinatus (belly in fossa, tendon passes under acromion to superior facet of greater tubercle) -->
+<path d="M522,236 Q600,232 748,258 L760,268 Q770,282 780,270 L792,266 Q852,272 882,292 L1008,300 Q1020,312 1012,328 L962,332 Q904,326 864,322 L826,292 L498,386 Q500,300 522,236 Z" fill="url(#mS)"/>
+<path d="M522,236 Q600,232 748,258 L760,268 Q770,282 780,270 L792,266 Q852,272 882,292 L1008,300 Q1020,312 1012,328 L962,332 Q904,326 864,322 L826,292 L498,386 Q500,300 522,236 Z" fill="url(#f1)"/>
+
+<!-- suprascapular nerve + artery: through the notch, along the fossa floor, around the spinoglenoid notch -->
+<g opacity=".95">
+  <path d="M776,200 Q774,250 772,272 Q790,300 830,318 Q856,330 862,350 Q858,392 820,450" stroke="#E2B400" stroke-width="5" fill="none" stroke-dasharray="9 6" stroke-linecap="round"/>
+  <path d="M790,196 Q786,240 790,262 Q808,296 840,312 Q868,326 874,350 Q872,392 838,446" stroke="#D2342A" stroke-width="3" fill="none" stroke-dasharray="6 6"/>
+  <line x1="758" y1="262" x2="786" y2="262" stroke="#7a6a4a" stroke-width="3"/>
+</g>
+<!-- danger zone: lateral fossa / notch -->
+<path d="M720,250 L792,264 Q860,272 872,300 L862,334 Q826,316 790,300 L720,300 Z" fill="url(#hatch)"/>
+<circle cx="771" cy="272" r="20" fill="none" stroke="#D97706" stroke-width="3.5"/>
+
+<!-- spine of scapula + acromion (subcutaneous ridge, drawn over the muscles) -->
+<path d="M498,384 L826,290 Q880,262 960,250 Q1002,248 1008,270 Q1006,294 976,302 Q926,312 872,326 Q856,332 848,342 Q700,372 506,420 Q494,402 498,384 Z" fill="url(#bone)" stroke="#B3A27F" stroke-width="3" filter="url(#sh)"/>
+<path d="M504,396 L838,302 Q900,280 990,264" stroke="#C7B48C" stroke-width="2" fill="none"/>
+<!-- scapular borders shown through muscle -->
+<path d="M520,228 Q502,300 500,400 Q496,470 512,560 Q548,700 584,832" stroke="#fff" stroke-width="2" stroke-dasharray="5 6" fill="none" opacity=".8"/>
+<path d="M520,228 Q560,226 640,238 L748,256" stroke="#fff" stroke-width="2" stroke-dasharray="5 6" fill="none" opacity=".8"/>
+
+<!-- upper trapezius (superficial layer, outline only) -->
+<path d="M270,140 Q520,182 760,230 Q900,246 1004,250 L1008,272 Q930,298 840,300 L506,396 L270,436" fill="rgba(120,90,170,.07)" stroke="#7B5EA7" stroke-width="2.5" stroke-dasharray="10 7"/>
+
+<!-- target zone + insertion -->
+<ellipse cx="612" cy="306" rx="74" ry="32" transform="rotate(-14 612 306)" fill="url(#safe)" stroke="#2E8B57" stroke-width="3" stroke-dasharray="8 6"/>
+<g>
+  <ellipse cx="626" cy="300" rx="9" ry="5" fill="rgba(60,30,20,.25)"/>
+  <line x1="620" y1="300" x2="632" y2="236" stroke="url(#steel)" stroke-width="3.2"/>
+  <rect x="626" y="176" width="12" height="62" rx="3" fill="#B87333" transform="rotate(10.6 632 236)"/>
+  <rect x="624" y="168" width="16" height="10" rx="3" fill="#8C5525" transform="rotate(10.6 632 236)"/>
+  <circle cx="620" cy="300" r="6" fill="#E0312B" stroke="#fff" stroke-width="2"/>
+</g>
+
+<!-- scale bar -->
+<g transform="translate(1000,960)"><line x1="0" y1="0" x2="80" y2="0" stroke="#2B2A28" stroke-width="4"/><line x1="0" y1="-8" x2="0" y2="8" stroke="#2B2A28" stroke-width="3"/><line x1="80" y1="-8" x2="80" y2="8" stroke="#2B2A28" stroke-width="3"/><text x="18" y="-14" class="ts" fill="#2B2A28">2 cm</text></g>
+</g>
+
+<!-- labels (main view) -->
+<g transform="translate(0,20)">
+<path class="lead" d="M420,170 L560,262"/><text x="64" y="166" class="t" fill="#A8392F">Supraspinatus</text><text x="64" y="188" class="ts">supraspinous fossa → greater tubercle (superior facet)</text>
+<path class="lead" d="M420,560 L560,520"/><text x="64" y="556" class="t">Infraspinatus</text><text x="64" y="578" class="ts">infraspinous fossa → middle facet</text>
+<path class="lead" d="M420,452 L500,404"/><text x="64" y="448" class="t" fill="#8B7442">Spine of scapula</text><text x="64" y="470" class="ts">subcutaneous ridge · palpate root → acromion</text>
+<path class="lead" d="M420,230 L516,232"/><text x="64" y="232" class="t">Superior angle</text>
+<path class="lead" d="M420,770 L640,790"/><text x="64" y="766" class="t">Teres major</text><text x="64" y="788" class="ts">inferior angle → humerus (anterior)</text>
+<path class="lead" d="M420,690 L790,620"/><text x="64" y="686" class="t">Teres minor</text><text x="64" y="708" class="ts">lateral border → inferior facet</text>
+<path class="lead" d="M420,880 L900,860"/><text x="64" y="876" class="t">Long head of triceps</text>
+<path class="lead" d="M420,330 L486,314"/><text x="64" y="320" class="t" fill="#6A4C96">Upper trapezius</text><text x="64" y="342" class="ts">superficial — the needle passes through it first</text>
+<path class="lead" d="M1040,250 L996,262"/><text x="1046" y="248" class="t">Acromion</text>
+<path class="lead" d="M1040,370 L1018,364"/><text x="1046" y="368" class="t">Greater</text><text x="1046" y="390" class="t">tubercle</text>
+<path class="lead" d="M790,166 L774,250"/><text x="640" y="142" class="t" fill="#B45F06">Suprascapular notch</text><text x="640" y="162" class="ts">n. below / a. above the transverse ligament</text>
+<path class="lead" d="M920,470 L864,386"/><text x="900" y="492" class="t" fill="#9A7B00">Suprascapular n. + a.</text><text x="900" y="512" class="ts">deep, on the fossa floor →</text><text x="900" y="530" class="ts">spinoglenoid notch</text>
+</g>
+
+<!-- ================= CROSS-SECTION ================= -->
+<rect x="1206" y="122" width="682" height="930" rx="22" fill="#FFFDF9" stroke="#E2D9C8"/>
+<text x="1236" y="168" style="font:800 25px Inter" fill="#2B2A28">Section through the insertion point</text>
+<text x="1236" y="194" class="ts">Perpendicular to the spine of scapula · skin up (prone) · schematic</text>
+<clipPath id="cb"><rect x="1236" y="226" width="622" height="640" rx="10"/></clipPath>
+<g clip-path="url(#cb)">
+  <rect x="1236" y="226" width="622" height="640" fill="#FAF7F1"/>
+  <!-- lung + pleura -->
+  <path d="M1236,812 Q1520,786 1700,744 Q1800,716 1858,690 L1858,866 L1236,866 Z" fill="#D7E7F7"/>
+  <path d="M1236,812 Q1520,786 1700,744 Q1800,716 1858,690" stroke="#5C93D0" stroke-width="3" fill="none" stroke-dasharray="8 5"/>
+  <!-- ribs + intercostals -->
+  <path d="M1236,734 Q1520,744 1858,664 L1858,690 Q1800,716 1700,744 Q1520,786 1236,812 Z" fill="#EAD7C6"/>
+  <g fill="url(#bone)" stroke="#B3A27F" stroke-width="2"><ellipse cx="1310" cy="770" rx="36" ry="16"/><ellipse cx="1450" cy="764" rx="36" ry="16"/><ellipse cx="1590" cy="746" rx="36" ry="16"/><ellipse cx="1720" cy="718" rx="34" ry="15"/><ellipse cx="1830" cy="690" rx="30" ry="13"/></g>
+  <!-- serratus anterior -->
+  <path d="M1236,712 Q1520,724 1858,646 L1858,664 Q1520,744 1236,734 Z" fill="#C3968A"/>
+  <!-- subscapularis -->
+  <path d="M1296,640 Q1340,662 1420,664 L1650,654 Q1712,642 1740,604 L1752,616 Q1726,684 1650,694 L1420,704 Q1318,700 1290,654 Z" fill="#B98A80"/>
+  <!-- soft tissue above superior border -->
+  <path d="M1716,440 L1858,440 L1858,646 Q1800,660 1754,662 Q1738,612 1736,584 Q1750,500 1716,440 Z" fill="#EADBC8"/>
+  <!-- scapula: spine (left, rising toward skin) · fossa floor · thin superior border (right) -->
+  <path d="M1236,452 Q1300,440 1318,506 Q1334,610 1416,622 L1650,612 Q1704,606 1724,572 L1736,580 Q1718,634 1650,640 L1416,650 Q1310,654 1236,654 Z" fill="url(#bone)" stroke="#B3A27F" stroke-width="2.5"/>
+  <!-- supraspinatus in the fossa -->
+  <path d="M1318,440 L1752,440 Q1742,530 1726,572 Q1704,606 1650,612 L1416,622 Q1334,610 1318,506 Z" fill="#C4544A"/>
+  <path d="M1318,440 L1752,440 Q1742,530 1726,572 Q1704,606 1650,612 L1416,622 Q1334,610 1318,506 Z" fill="url(#fx)"/>
+  <!-- suprascapular nerve on fossa floor, lateral (shown as dot = cut nerve) -->
+  <!-- trapezius / subcut / skin -->
+  <rect x="1236" y="380" width="622" height="60" fill="#8E6AA8" opacity=".85"/><rect x="1236" y="380" width="622" height="60" fill="url(#fx)"/>
+  <rect x="1236" y="352" width="622" height="28" fill="#F3DDB0"/>
+  <rect x="1236" y="338" width="622" height="14" fill="#E4B89A"/>
+  <!-- correct needle: perpendicular, slight caudal tilt, tip on bone -->
+  <line x1="1470" y1="610" x2="1490" y2="300" stroke="url(#steel)" stroke-width="4"/>
+  <line x1="1490" y1="300" x2="1495" y2="236" stroke="#B87333" stroke-width="15" stroke-linecap="round"/>
+  <!-- wrong direction -->
+  <path d="M1662,338 L1790,720" stroke="#E0312B" stroke-width="4" stroke-dasharray="10 8"/>
+  <path d="M1772,702 l34,34 M1806,702 l-34,34" stroke="#E0312B" stroke-width="6" stroke-linecap="round"/>
+</g>
+<!-- section labels -->
+<text x="1250" y="332" class="ts" fill="#2B2A28">Skin</text>
+<text x="1250" y="372" class="ts" fill="#6b5a2e">Subcutaneous tissue</text>
+<text x="1250" y="418" class="tw">Upper trapezius</text>
+<text x="1530" y="520" class="tw">Supraspinatus</text>
+<text x="1250" y="560" style="font:700 16px Inter" fill="#6b5a2e">Spine of</text><text x="1250" y="580" style="font:700 16px Inter" fill="#6b5a2e">scapula</text>
+<text x="1430" y="642" style="font:700 15px Inter" fill="#6b5a2e">Fossa floor = backstop</text>
+<text x="1440" y="688" style="font:600 15px Inter" fill="#fff">Subscapularis</text>
+<text x="1250" y="728" style="font:600 14px Inter" fill="#fff">Serratus anterior</text>
+<text x="1530" y="798" style="font:600 15px Inter" fill="#6b5a2e">Ribs · intercostals</text>
+<text x="1270" y="852" style="font:700 18px Inter" fill="#3C6E9E">Pleura · lung apex</text>
+<text x="1600" y="300" style="font:800 16px Inter" fill="#E0312B">✕ never past the superior border</text>
+<path d="M1504,342 L1518,342 L1518,612 L1504,612" stroke="#2B2A28" stroke-width="2" fill="none"/>
+<text x="1526" y="474" style="font:700 15px Inter" fill="#fff">stop at bone</text>
+<text x="1240" y="900" class="ts">← caudal (spine of scapula)</text>
+<text x="1640" y="900" class="ts">superior border →</text>
+<text x="1240" y="944" style="font:800 19px Inter" fill="#2B2A28">Why it is safe</text>
+<text x="1240" y="972" class="ts" fill="#3a3833">Directly under the target is the bony fossa floor, with</text>
+<text x="1240" y="994" class="ts" fill="#3a3833">subscapularis, serratus anterior and ribs beneath it. The lung</text>
+<text x="1240" y="1016" class="ts" fill="#3a3833">is only at risk if the needle goes past the superior border.</text>
+
+<!-- ================= KEY POINTS ================= -->
+<rect x="32" y="1066" width="1856" height="112" rx="18" fill="#2B2A28"/>
+<g style="font:600 19px Inter" fill="#fff">
+  <text x="60" y="1102">● Prone, arm by the side</text>
+  <text x="60" y="1136">● Needle 0.25–0.30 × 40–60 mm</text>
+  <text x="400" y="1102">● Mid-belly, medial–middle third of the fossa</text>
+  <text x="400" y="1136">● ≈1–2 cm above the spine of scapula</text>
+  <text x="900" y="1102">● Perpendicular, slight caudal tilt</text>
+  <text x="900" y="1136">● Stop at bone contact</text>
+  <text x="1300" y="1102" fill="#F6B26B">● Avoid lateral fossa / notch (suprascapular n.)</text>
+  <text x="1300" y="1136" fill="#FF8A80">● Never angle past the superior border (lung)</text>
+</g>
+<text x="60" y="1166" style="font:500 13px Inter" fill="#cfc6b8">Refs: Donnelly et al., Travell, Simons &amp; Simons' Trigger Point Manual, 3rd ed. (2019) · Dommerholt &amp; Fernández-de-las-Peñas, Trigger Point Dry Needling, 2nd ed. · Educational use — practise only after accredited training.</text>
+</svg>
+</body>
+</html>
