@@ -1,0 +1,211 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<title>ACL Home Exercises</title>
+<style>
+  @font-face { font-family: Cairo; font-weight: 400; src: url(fonts/cairo-arabic-400-normal.woff2), url(fonts/cairo-latin-400-normal.woff2); }
+  @font-face { font-family: Cairo; font-weight: 600; src: url(fonts/cairo-arabic-600-normal.woff2), url(fonts/cairo-latin-600-normal.woff2); }
+  @font-face { font-family: Cairo; font-weight: 700; src: url(fonts/cairo-arabic-700-normal.woff2), url(fonts/cairo-latin-700-normal.woff2); }
+  @font-face { font-family: Cairo; font-weight: 800; src: url(fonts/cairo-arabic-800-normal.woff2), url(fonts/cairo-latin-800-normal.woff2); }
+  :root { --teal: #0F766E; --teal-2: #14B8A6; --teal-bg: #E6F4F1; --ink: #0F2A2A; --muted: #5B7170; --line: #DCE8E5;
+          --coral: #F97316; --bg: #EEF3F1; --card: #fff; --red: #DC2626; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { width: 1920px; height: 1180px; background: linear-gradient(135deg, #E3EFEC, #F4F1EA); font-family: Cairo, sans-serif; color: var(--ink); overflow: hidden; }
+  .stage { display: flex; gap: 70px; justify-content: center; align-items: flex-start; padding-top: 175px; }
+  .intro { position: absolute; top: 40px; right: 0; left: 0; text-align: center; }
+  .intro h1 { font-weight: 800; font-size: 40px; }
+  .intro p { font-size: 21px; color: var(--muted); }
+  .cap { text-align: center; font-weight: 700; font-size: 20px; color: var(--muted); margin-top: 18px; }
+  .phone { width: 400px; height: 880px; border-radius: 52px; background: #111; padding: 12px; box-shadow: 0 30px 60px rgba(15,42,42,.25); }
+  .screen { width: 100%; height: 100%; border-radius: 42px; background: var(--bg); overflow: hidden; position: relative; }
+  .status { height: 40px; display: flex; justify-content: space-between; align-items: center; padding: 0 28px; font: 700 15px Cairo; direction: ltr; }
+  .notch { position: absolute; top: 8px; left: 50%; transform: translateX(-50%); width: 110px; height: 30px; background: #111; border-radius: 20px; }
+  .pad { padding: 6px 20px; }
+  .brand { display: flex; align-items: center; gap: 10px; }
+  .logo { width: 40px; height: 40px; border-radius: 12px; background: var(--teal); display: grid; place-items: center; }
+  .brand b { font-size: 16px; display: block; line-height: 1.2; }
+  .brand small { font-size: 12.5px; color: var(--muted); }
+  .hello { margin-top: 8px; font-weight: 800; font-size: 23px; line-height: 1.3; }
+  .sub { color: var(--muted); font-size: 14.5px; }
+  .progress { margin-top: 10px; background: var(--teal); color: #fff; border-radius: 22px; padding: 12px 16px; display: flex; align-items: center; gap: 16px; }
+  .progress .t1 { font-weight: 800; font-size: 15.5px; }
+  .progress .t2 { font-size: 12.5px; opacity: .85; }
+  .days { display: flex; gap: 6px; margin-top: 8px; }
+  .days span { width: 24px; height: 24px; border-radius: 8px; background: rgba(255,255,255,.18); font-size: 11.5px; display: grid; place-items: center; font-weight: 700; }
+  .days span.on { background: #fff; color: var(--teal); }
+  .tabs { display: flex; gap: 8px; margin: 12px 0 10px; }
+  .tab { flex: 1; text-align: center; padding: 8px 4px; border-radius: 14px; background: #fff; border: 1.5px solid var(--line); font-size: 13px; font-weight: 700; color: var(--muted); line-height: 1.25; }
+  .tab small { display: block; font-weight: 600; font-size: 11px; }
+  .tab.on { background: var(--ink); color: #fff; border-color: var(--ink); }
+  .list { display: flex; flex-direction: column; gap: 7px; }
+  .ex { display: flex; align-items: center; gap: 12px; background: var(--card); border-radius: 16px; padding: 5px 10px 5px 12px; border: 1.5px solid var(--line); }
+  .thumb { width: 92px; height: 54px; border-radius: 12px; background: var(--teal-bg); flex: none; }
+  .ex .nm { font-weight: 800; font-size: 15px; line-height: 1.2; }
+  .ex .en { font-size: 12px; color: var(--muted); direction: ltr; text-align: right; }
+  .chip { display: inline-block; margin-top: 3px; font-size: 11.5px; font-weight: 700; color: var(--teal); background: var(--teal-bg); padding: 1px 8px; border-radius: 999px; }
+  .chk { margin-right: auto; width: 28px; height: 28px; border-radius: 50%; border: 2px solid var(--line); flex: none; display: grid; place-items: center; }
+  .chk.done { background: var(--teal-2); border-color: var(--teal-2); }
+  .nav { position: absolute; bottom: 0; left: 0; right: 0; height: 74px; background: #fff; border-top: 1px solid var(--line); display: flex; justify-content: space-around; align-items: center; font-size: 12px; font-weight: 700; color: var(--muted); }
+  .nav div { text-align: center; } .nav .on { color: var(--teal); }
+  .nav i { display: block; width: 24px; height: 24px; margin: 0 auto 2px; border-radius: 7px; background: currentColor; opacity: .85; }
+  /* detail */
+  .top { display: flex; justify-content: space-between; align-items: center; padding: 4px 20px 8px; }
+  .icon { width: 40px; height: 40px; border-radius: 13px; background: #fff; border: 1.5px solid var(--line); display: grid; place-items: center; font-weight: 800; }
+  .hero { margin: 0 20px; height: 250px; border-radius: 24px; background: #fff; border: 1.5px solid var(--line); position: relative; }
+  .hero .play { position: absolute; bottom: 12px; left: 12px; background: var(--ink); color: #fff; font-weight: 700; font-size: 13px; padding: 6px 14px; border-radius: 999px; }
+  .hero .tag { position: absolute; top: 12px; right: 12px; font-size: 12px; font-weight: 700; color: var(--coral); background: #FFF1E6; padding: 2px 10px; border-radius: 999px; }
+  .dose { display: flex; gap: 8px; margin: 14px 20px 0; }
+  .dose div { flex: 1; background: #fff; border: 1.5px solid var(--line); border-radius: 16px; text-align: center; padding: 6px 2px; }
+  .dose b { display: block; font-size: 20px; font-weight: 800; color: var(--teal); line-height: 1.2; }
+  .dose span { font-size: 12px; color: var(--muted); font-weight: 600; }
+  .steps { margin: 12px 20px 0; }
+  .steps h4 { font-size: 16px; font-weight: 800; margin-bottom: 4px; }
+  .step { display: flex; gap: 10px; font-size: 14px; line-height: 1.5; margin: 5px 0; }
+  .step .n { flex: none; width: 24px; height: 24px; border-radius: 50%; background: var(--teal); color: #fff; font-weight: 800; font-size: 13px; display: grid; place-items: center; margin-top: 1px; }
+  .warn { margin: 10px 20px 0; background: #FEF2F2; border: 1.5px solid #FECACA; color: #991B1B; font-size: 13px; font-weight: 600; line-height: 1.5; padding: 8px 12px; border-radius: 14px; }
+  .cta { position: absolute; bottom: 20px; left: 20px; right: 20px; display: flex; gap: 10px; }
+  .btn { flex: 1; text-align: center; padding: 13px; border-radius: 18px; font-weight: 800; font-size: 16px; }
+  .btn.p { background: var(--teal); color: #fff; } .btn.s { background: #fff; border: 1.5px solid var(--line); flex: .7; }
+  /* grid */
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .g { background: #fff; border: 1.5px solid var(--line); border-radius: 16px; padding: 6px 8px; }
+  .g .thumb { width: 100%; height: 72px; }
+  .g .nm { font-weight: 800; font-size: 14px; margin-top: 2px; line-height: 1.2; }
+  .g .en { font-size: 11.5px; color: var(--muted); direction: ltr; text-align: right; }
+  .lock { margin-top: 12px; background: #fff; border: 1.5px dashed #B9CCC8; color: var(--muted); border-radius: 16px; padding: 10px 14px; font-size: 13px; font-weight: 600; text-align: center; }
+  svg.fig .b { stroke: #36504F; } svg.fig .a { stroke: var(--coral); } svg.fig line, svg.fig polyline { stroke-linecap: round; stroke-linejoin: round; fill: none; }
+</style>
+</head>
+<body>
+<div class="intro">
+  <h1>تمارين البيت بعد قطع الرباط الصليبي الأمامي (ACL)</h1>
+  <p>واجهة موبايل للمريض · الدكتور بيبعت اللينك مع المريض، وكل تمرين بيفتح على رسم وضع الجسم والخطوات</p>
+</div>
+
+<div class="stage">
+  <!-- 1. Exercise list -->
+  <div>
+  <div class="phone"><div class="screen">
+    <div class="notch"></div>
+    <div class="status"><span>9:41</span><span>●●● 100%</span></div>
+    <div class="pad">
+      <div class="brand"><div class="logo"><svg width="22" height="22" viewBox="0 0 24 24"><path d="M12 3v18M3 12h18" stroke="#fff" stroke-width="4" stroke-linecap="round"/></svg></div>
+        <div><b>عيادة العلاج الطبيعي</b><small>برنامجك بإشراف أخصائي العلاج</small></div></div>
+      <div class="hello">أهلاً يا أحمد 👋<br><span class="sub">برنامج الرباط الصليبي · الركبة اليمين</span></div>
+      <div class="progress">
+        <svg width="62" height="62" viewBox="0 0 62 62"><circle cx="31" cy="31" r="25" stroke="rgba(255,255,255,.25)" stroke-width="7" fill="none"/>
+          <circle cx="31" cy="31" r="25" stroke="#fff" stroke-width="7" fill="none" stroke-dasharray="105 157" stroke-linecap="round" transform="rotate(-90 31 31)"/>
+          <text x="31" y="37" text-anchor="middle" fill="#fff" style="font:800 16px Cairo">4/6</text></svg>
+        <div><div class="t1">خلّصت 4 من 6 تمارين النهارده</div><div class="t2">الأسبوع 2 · مرتين في اليوم</div>
+          <div class="days"><span class="on">س</span><span class="on">ح</span><span class="on">ن</span><span class="on">ث</span><span>ر</span><span>خ</span><span>ج</span></div></div>
+      </div>
+      <div class="tabs">
+        <div class="tab on">المرحلة 1<small>0–2 أسبوع</small></div>
+        <div class="tab">المرحلة 2<small>2–6 أسابيع</small></div>
+        <div class="tab">المرحلة 3<small>6–12 أسبوع</small></div>
+      </div>
+      <div class="list">
+        <div class="ex"><svg class="thumb fig" data-pose="quadset"></svg><div><div class="nm">شدّ عضلة الفخذ</div><div class="en">Quad sets</div><span class="chip">10 × 10 ث ثبات</span></div><div class="chk done"><svg width="14" height="14" viewBox="0 0 14 14"><path d="M2 7l3.5 3.5L12 3.5" stroke="#fff" stroke-width="2.5" fill="none"/></svg></div></div>
+        <div class="ex"><svg class="thumb fig" data-pose="slr"></svg><div><div class="nm">رفع الرجل مفرودة</div><div class="en">Straight leg raise</div><span class="chip">3 × 10</span></div><div class="chk done"><svg width="14" height="14" viewBox="0 0 14 14"><path d="M2 7l3.5 3.5L12 3.5" stroke="#fff" stroke-width="2.5" fill="none"/></svg></div></div>
+        <div class="ex"><svg class="thumb fig" data-pose="heelslide"></svg><div><div class="nm">سحب الكعب</div><div class="en">Heel slides</div><span class="chip">3 × 15</span></div><div class="chk done"><svg width="14" height="14" viewBox="0 0 14 14"><path d="M2 7l3.5 3.5L12 3.5" stroke="#fff" stroke-width="2.5" fill="none"/></svg></div></div>
+        <div class="ex"><svg class="thumb fig" data-pose="pumps"></svg><div><div class="nm">تحريك القدم لفوق وتحت</div><div class="en">Ankle pumps</div><span class="chip">20 مرة كل ساعة</span></div><div class="chk done"><svg width="14" height="14" viewBox="0 0 14 14"><path d="M2 7l3.5 3.5L12 3.5" stroke="#fff" stroke-width="2.5" fill="none"/></svg></div></div>
+        <div class="ex"><svg class="thumb fig" data-pose="prone"></svg><div><div class="nm">فرد الركبة على بطنك</div><div class="en">Prone hangs</div><span class="chip">3 × 2 دقيقة</span></div><div class="chk"></div></div>
+        <div class="ex"><svg class="thumb fig" data-pose="bridge"></svg><div><div class="nm">رفع الحوض</div><div class="en">Glute bridge</div><span class="chip">3 × 10</span></div><div class="chk"></div></div>
+      </div>
+    </div>
+    <div class="nav"><div class="on"><i></i>تماريني</div><div><i></i>التقدّم</div><div><i></i>رسالة للدكتور</div></div>
+  </div></div>
+  <div class="cap">١ · قايمة التمارين اليومية</div>
+  </div>
+
+  <!-- 2. Exercise detail -->
+  <div>
+  <div class="phone"><div class="screen">
+    <div class="notch"></div>
+    <div class="status"><span>9:41</span><span>●●● 100%</span></div>
+    <div class="top"><div class="icon">→</div><div style="text-align:center"><div style="font-weight:800;font-size:17px">رفع الرجل مفرودة</div><div class="sub" style="direction:ltr">Straight leg raise</div></div><div class="icon">♡</div></div>
+    <div class="hero"><svg class="fig" data-pose="slr" data-big="1" style="width:100%;height:100%"></svg>
+      <div class="tag">● الرجل المصابة</div><div class="play">▶ شوف الفيديو</div></div>
+    <div class="dose"><div><b>3</b><span>مجموعات</span></div><div><b>10</b><span>تكرار</span></div><div><b>3 ث</b><span>ثبات فوق</span></div><div><b>2×</b><span>في اليوم</span></div></div>
+    <div class="steps"><h4>الوضع والخطوات</h4>
+      <div class="step"><span class="n">1</span><span>نام على ضهرك، واثني الركبة السليمة وحط رجلك على الأرض.</span></div>
+      <div class="step"><span class="n">2</span><span>شدّ عضلة الفخذ الأمامية للرجل المصابة لحد ما الركبة تتفرد على الآخر.</span></div>
+      <div class="step"><span class="n">3</span><span>ارفع الرجل وهي مفرودة لحد مستوى الركبة التانية، واثبت 3 ثواني.</span></div>
+      <div class="step"><span class="n">4</span><span>نزّلها ببطء وارتاح ثانيتين قبل التكرار الجاي.</span></div>
+    </div>
+    <div class="warn">⚠ لو الركبة بتتني وانت بترفع، ارجع لتمرين «شدّ عضلة الفخذ». وقّف لو حسيت بألم شديد أو التورم زاد، وكلّم الأخصائي.</div>
+    <div class="cta"><div class="btn s">⏱ العدّاد</div><div class="btn p">✓ خلّصت التمرين</div></div>
+  </div></div>
+  <div class="cap">٢ · لما يدوس على التمرين: وضع الجسم والخطوات</div>
+  </div>
+
+  <!-- 3. Phase 2 grid -->
+  <div>
+  <div class="phone"><div class="screen">
+    <div class="notch"></div>
+    <div class="status"><span>9:41</span><span>●●● 100%</span></div>
+    <div class="pad">
+      <div style="font-weight:800;font-size:22px;margin-top:4px">المرحلة 2</div>
+      <div class="sub">من الأسبوع 2 لـ 6 · بتتفتح بعد موافقة الأخصائي</div>
+      <div class="tabs">
+        <div class="tab">المرحلة 1<small>0–2 أسبوع</small></div>
+        <div class="tab on">المرحلة 2<small>2–6 أسابيع</small></div>
+        <div class="tab">المرحلة 3<small>6–12 أسبوع</small></div>
+      </div>
+      <div class="grid">
+        <div class="g"><svg class="thumb fig" data-pose="squat"></svg><div class="nm">نص قرفصاء بالكرسي</div><div class="en">Mini squats (0–45°)</div><span class="chip">3 × 12</span></div>
+        <div class="g"><svg class="thumb fig" data-pose="calf"></svg><div class="nm">الوقوف على المشط</div><div class="en">Calf raises</div><span class="chip">3 × 15</span></div>
+        <div class="g"><svg class="thumb fig" data-pose="balance"></svg><div class="nm">الوقوف على رجل</div><div class="en">Single-leg balance</div><span class="chip">3 × 30 ث</span></div>
+        <div class="g"><svg class="thumb fig" data-pose="abd"></svg><div class="nm">رفع الرجل على الجنب</div><div class="en">Side-lying hip abduction</div><span class="chip">3 × 12</span></div>
+        <div class="g"><svg class="thumb fig" data-pose="hamcurl"></svg><div class="nm">ثني الركبة واقف</div><div class="en">Standing hamstring curl</div><span class="chip">3 × 12</span></div>
+        <div class="g"><svg class="thumb fig" data-pose="stepup"></svg><div class="nm">الطلوع على درجة</div><div class="en">Step-ups</div><span class="chip">3 × 10</span></div>
+      </div>
+      <div class="lock" style="margin-top:8px;padding:7px 12px">🔒 المرحلة 3 (جري خفيف، قفز، تمارين رشاقة) بتتفتح من العيادة بعد التقييم</div>
+    </div>
+    <div class="nav"><div class="on"><i></i>تماريني</div><div><i></i>التقدّم</div><div><i></i>رسالة للدكتور</div></div>
+  </div></div>
+  <div class="cap">٣ · المراحل الجاية بتتفتح من الدكتور</div>
+  </div>
+</div>
+
+<script>
+// Side-view figures. Each pose: head [x,y], body segments (b), affected-leg segments (a), props.
+const P = {
+  quadset: { head:[26,66], b:[[38,70,98,72],[44,72,74,80],[98,74,140,75,176,75]], a:[[98,72,140,72,178,72,182,62]],
+    props:'<circle cx="140" cy="80" r="6" fill="#B9D9D3"/><path d="M140 52 v10 m-4 -4 l4 4 l4 -4" stroke="#0F766E" stroke-width="2.5" fill="none"/>' },
+  slr: { head:[26,72], b:[[38,76,98,78],[44,78,74,86],[98,80,128,56,150,86,160,86]], a:[[98,78,138,62,176,46,180,36]],
+    props:'<path d="M186 58 v-16 m-4 4 l4 -4 l4 4" stroke="#0F766E" stroke-width="2.5" fill="none"/>' },
+  heelslide: { head:[26,72], b:[[38,76,98,78],[44,78,74,86],[98,80,140,82,178,82]], a:[[98,78,130,52,146,84,156,84]],
+    props:'<path d="M182 92 h-26 m4 -4 l-4 4 l4 4" stroke="#0F766E" stroke-width="2.5" fill="none"/>' },
+  pumps: { head:[26,72], b:[[38,76,98,78],[44,78,74,86],[98,80,140,82,176,82]], a:[[98,78,140,78,174,78,182,66]],
+    props:'<path d="M190 70 a12 12 0 0 0 -4 -18 m0 0 l-1 6 m1 -6 l-6 1" stroke="#0F766E" stroke-width="2.2" fill="none"/>' },
+  prone: { head:[24,60], b:[[36,64,98,66],[42,66,70,72],[98,68,148,68,188,70]], a:[[98,64,148,64,190,64,194,74]],
+    props:'<rect x="10" y="74" width="140" height="10" rx="4" fill="#B9D9D3"/><rect x="18" y="84" width="6" height="16" fill="#B9D9D3"/><rect x="136" y="84" width="6" height="16" fill="#B9D9D3"/>' },
+  bridge: { head:[24,80], b:[[36,84,96,58],[40,86,70,92],[96,60,130,52,142,90,152,90]], a:[[96,56,128,48,138,90,150,90]],
+    props:'<path d="M96 38 v-12 m-4 4 l4 -4 l4 4" stroke="#0F766E" stroke-width="2.5" fill="none"/>' },
+  squat: { head:[96,20], b:[[96,32,90,62],[94,36,124,50],[90,64,106,80,96,100,106,100]], a:[[90,62,108,78,98,100,110,100]],
+    props:'<path d="M126 40 v60 M126 62 h28 v38 M154 62 v-26" stroke="#9FC7C0" stroke-width="5" fill="none" stroke-linecap="round"/>' },
+  calf: { head:[100,14], b:[[100,26,100,58],[100,30,118,48],[100,60,100,80,102,96,112,98]], a:[[100,58,100,78,102,92,114,98]],
+    props:'<path d="M128 92 v-14 m-4 4 l4 -4 l4 4" stroke="#0F766E" stroke-width="2.5" fill="none"/>' },
+  balance: { head:[100,14], b:[[100,26,100,58],[100,32,80,46],[100,32,120,46],[100,60,90,78,74,86]], a:[[100,58,100,80,100,100,110,100]] },
+  abd: { head:[24,78], b:[[36,80,96,82],[40,82,70,76],[96,86,140,88,180,88]], a:[[96,80,138,68,176,56,180,48]],
+    props:'<path d="M188 70 v-14 m-4 4 l4 -4 l4 4" stroke="#0F766E" stroke-width="2.5" fill="none"/>' },
+  hamcurl: { head:[96,14], b:[[96,26,96,58],[96,30,120,46],[96,60,96,80,96,100,106,100]], a:[[96,58,98,80,76,76,70,84]],
+    props:'<path d="M126 40 v60 M126 62 h26 v38 M152 62 v-26" stroke="#9FC7C0" stroke-width="5" fill="none" stroke-linecap="round"/>' },
+  stepup: { head:[92,12], b:[[92,24,94,56],[92,28,76,46],[94,58,90,80,88,100,98,100]], a:[[94,56,112,64,112,82,122,82]],
+    props:'<rect x="104" y="84" width="60" height="16" rx="3" fill="#B9D9D3"/>' },
+};
+document.querySelectorAll('svg.fig').forEach(svg => {
+  const p = P[svg.dataset.pose]; const big = !!svg.dataset.big;
+  svg.setAttribute('viewBox', '0 0 200 110'); svg.setAttribute('preserveAspectRatio', 'xMidYMid meet');
+  const w = big ? 6 : 7.5;
+  const seg = (s, c) => `<polyline class="${c}" points="${s.join(' ')}" stroke-width="${c === 'a' ? w + .5 : w}"/>`;
+  let h = `<line x1="4" y1="101" x2="196" y2="101" stroke="#C9DCD8" stroke-width="2"/>` + (p.props || '');
+  h += p.b.map(s => seg(s, 'b')).join('') + p.a.map(s => seg(s, 'a')).join('');
+  h += `<circle cx="${p.head[0]}" cy="${p.head[1]}" r="${big ? 8 : 9}" fill="#36504F"/>`;
+  svg.innerHTML = h;
+});
+</script>
+</body>
+</html>
