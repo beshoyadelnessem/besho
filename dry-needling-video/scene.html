@@ -189,7 +189,14 @@
     <g clip-path="url(#cBox)">
       <rect x="1214" y="250" width="622" height="590" fill="#FAF7F1"/>
       <!-- lung apex / thoracic -->
-      <path d="M1214,770 Q1520,712 1700,652 Q1790,622 1836,600 L1836,840 L1214,840 Z" fill="#D7E7F7" stroke="#9DBFE3" stroke-width="2"/>
+      <path d="M1214,800 Q1520,772 1700,722 Q1790,694 1836,676 L1836,840 L1214,840 Z" fill="#D7E7F7"/>
+      <path d="M1214,800 Q1520,772 1700,722 Q1790,694 1836,676" stroke="#6FA0D6" stroke-width="3" fill="none" stroke-dasharray="7 5"/>
+      <!-- serratus anterior + ribs/intercostals between scapula and pleura -->
+      <path d="M1214,700 Q1500,712 1836,640 L1836,660 Q1500,732 1214,720 Z" fill="#C79A8E"/>
+      <path d="M1214,722 Q1500,734 1836,662 L1836,690 Q1500,770 1214,790 Z" fill="#E9D5C4"/>
+      <g fill="var(--bone)" stroke="var(--bone-ink)" stroke-width="2">
+        <ellipse cx="1290" cy="752" rx="34" ry="15"/><ellipse cx="1420" cy="748" rx="34" ry="15"/>
+        <ellipse cx="1550" cy="736" rx="34" ry="15"/><ellipse cx="1680" cy="712" rx="32" ry="14"/><ellipse cx="1800" cy="684" rx="30" ry="13"/></g>
       <!-- subscapularis -->
       <path d="M1290,628 Q1330,650 1400,652 L1640,642 Q1700,630 1726,592 L1736,604 Q1712,664 1640,672 L1400,684 Q1310,680 1286,640 Z" fill="#B98A80"/>
       <!-- bone: fossa floor rising to spine of scapula on the left, thin edge at superior border on the right -->
@@ -213,9 +220,10 @@
     <text x="1600" y="365" class="lbl-s" fill="#6b5a2e">Subcutaneous tissue</text>
     <text x="1600" y="410" class="lbl-w">Upper trapezius</text>
     <text x="1572" y="575" class="lbl-w">Supraspinatus</text>
-    <text x="1222" y="700" style="font:700 19px Inter" fill="var(--ink)">Bone = backstop</text>
+    <text x="1222" y="604" style="font:700 19px Inter" fill="var(--ink)">Bone = backstop</text>
     <text x="1446" y="666" style="font:600 17px Inter" fill="#fff">Subscapularis</text>
-    <text x="1500" y="790" class="lbl" fill="#3C6E9E">Thorax · lung apex</text>
+    <text x="1300" y="790" style="font:600 16px Inter" fill="#6b5a2e">Ribs · intercostals · pleura</text>
+    <text x="1500" y="822" class="lbl" fill="#3C6E9E">Lung apex</text>
     <text x="1222" y="425" style="font:600 16px Inter" fill="#fff" opacity="0">.</text>
     <text x="1224" y="876" class="lbl-s">← caudal: spine of scapula</text>
     <text x="1580" y="876" class="lbl-s">superior border →</text>
