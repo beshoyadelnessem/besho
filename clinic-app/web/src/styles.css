@@ -158,3 +158,4 @@ html.large ol.steps li { font-size: 17px; }
   .report { max-width: none; }
 }
 .report .chart { max-width: 720px; }
+.steps li.reading, .notice.reading { background: var(--teal-soft); border-radius: 8px; outline: 2px solid var(--teal); outline-offset: 2px; }

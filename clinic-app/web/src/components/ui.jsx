@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { POSES } from '../figure/poses.js';
 import { drawScene, lookFor } from '../figure/rig.js';
-import { LANGS, SPEECH, errorKey, useI18n } from '../i18n.js';
+import { LANGS, errorKey, useI18n } from '../i18n.js';
+import { speak, speechSupported, stopSpeaking } from '../lib/speech.js';
 import { ageFrom, dateLabel, dayNum } from '../lib/format.js';
 
 export const lookOf = (p) => lookFor({ gender: p?.gender, hijab: p?.avatar?.hijab, age: ageFrom(p?.birth_year) });
@@ -63,23 +64,20 @@ export function LangSwitch({ value, onChange }) {
 }
 
 // Reads text aloud with the browser's speech engine, in the UI language.
-export function ReadAloud({ parts }) {
+// onPart(i) reports which entry of `parts` is being read (null when finished).
+export function ReadAloud({ parts, onPart = () => {} }) {
   const { t, lang } = useI18n();
   const [on, setOn] = useState(false);
   const [note, setNote] = useState('');
-  useEffect(() => () => window.speechSynthesis?.cancel(), []);
-  if (!('speechSynthesis' in window)) return null;
-  const toggle = () => {
-    const s = window.speechSynthesis;
-    if (on) { s.cancel(); setOn(false); return; }
-    const code = SPEECH[lang];
-    const voice = s.getVoices().find((v) => v.lang?.toLowerCase().startsWith(code.slice(0, 2)));
-    if (!voice && s.getVoices().length) setNote(t('noVoice')); else setNote('');
-    s.cancel();
-    const u = new SpeechSynthesisUtterance(parts.filter(Boolean).join('. '));
-    u.lang = code; if (voice) u.voice = voice; u.rate = 0.9;
-    u.onend = () => setOn(false); u.onerror = () => setOn(false);
-    s.speak(u); setOn(true);
+  useEffect(() => stopSpeaking, []);
+  useEffect(() => { stopSpeaking(); setOn(false); onPart(null); }, [lang]); // eslint-disable-line react-hooks/exhaustive-deps
+  if (!speechSupported()) return null;
+  const toggle = async () => {
+    if (on) { stopSpeaking(); setOn(false); onPart(null); return; }
+    setNote(''); setOn(true);
+    const result = await speak(parts, lang, onPart);
+    if (result === 'no-voice') setNote(t('noVoice'));
+    if (result !== 'stopped') { setOn(false); onPart(null); }
   };
   return (
     <div className="row">

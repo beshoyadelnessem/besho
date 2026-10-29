@@ -10,6 +10,7 @@ export default function ExerciseView({ id, look, library, go }) {
   const [error, setError] = useError();
   const [doneMsg, setDoneMsg] = useState('');
   const [coach, setCoach] = useState(null);
+  const [reading, setReading] = useState(null);   // index into the read-aloud parts below
   const coachRef = useRef(null);
 
   useEffect(() => { api.todayPlan().then((p) => setS(p.find((x) => String(x.prescription_id) === String(id)) || false)); }, [id]);
@@ -80,9 +81,9 @@ export default function ExerciseView({ id, look, library, go }) {
       </div>
 
       <div className="card stack">
-        <div className="row spread"><b>{t('steps')}</b><ReadAloud parts={[tx.name, `${t('caution')}: ${tx.caution}`, s.extra_caution, ...tx.steps, tx.tip]} /></div>
-        <ol className="steps">{tx.steps.map((x) => <li key={x}>{x}</li>)}</ol>
-        {tx.tip && <div className="notice small">💡 {tx.tip}</div>}
+        <div className="row spread"><b>{t('steps')}</b><ReadAloud parts={[tx.name, `${t('caution')}: ${tx.caution}`, s.extra_caution, ...tx.steps, tx.tip]} onPart={setReading} /></div>
+        <ol className="steps">{tx.steps.map((x, i) => <li key={x} className={reading === i + 3 ? 'reading' : ''}>{x}</li>)}</ol>
+        {tx.tip && <div className={`notice small${reading === tx.steps.length + 3 ? ' reading' : ''}`}>💡 {tx.tip}</div>}
       </div>
 
       <ErrorBox error={error} />
