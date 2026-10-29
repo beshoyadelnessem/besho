@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { POSES } from '../figure/poses.js';
 import { drawScene, lookFor } from '../figure/rig.js';
 import { LANGS, errorKey, useI18n } from '../i18n.js';
-import { speak, speechSupported, stopSpeaking } from '../lib/speech.js';
+import { audioFor, partAt } from '../lib/audio.js';
 import { ageFrom, dateLabel, dayNum } from '../lib/format.js';
 
 export const lookOf = (p) => lookFor({ gender: p?.gender, hijab: p?.avatar?.hijab, age: ageFrom(p?.birth_year) });
@@ -63,26 +63,36 @@ export function LangSwitch({ value, onChange }) {
   );
 }
 
-// Reads text aloud with the browser's speech engine, in the UI language.
-// onPart(i) reports which entry of `parts` is being read (null when finished).
-export function ReadAloud({ parts, onPart = () => {} }) {
+// Plays the recorded read-aloud track of an exercise.
+// onPart(i) reports which read-aloud part is playing (null when stopped).
+export function ReadAloud({ slug, gender, onPart = () => {} }) {
   const { t, lang } = useI18n();
+  const track = audioFor(slug, lang, gender);
+  const ref = useRef(null);
   const [on, setOn] = useState(false);
-  const [note, setNote] = useState('');
-  useEffect(() => stopSpeaking, []);
-  useEffect(() => { stopSpeaking(); setOn(false); onPart(null); }, [lang]); // eslint-disable-line react-hooks/exhaustive-deps
-  if (!speechSupported()) return null;
-  const toggle = async () => {
-    if (on) { stopSpeaking(); setOn(false); onPart(null); return; }
-    setNote(''); setOn(true);
-    const result = await speak(parts, lang, onPart);
-    if (result === 'no-voice') setNote(t('noVoice'));
-    if (result !== 'stopped') { setOn(false); onPart(null); }
+  const [failed, setFailed] = useState(false);
+  const stop = () => { ref.current?.pause(); setOn(false); onPart(null); };
+  useEffect(() => () => { ref.current?.pause(); ref.current = null; }, [track?.src]);
+  if (!track) return null;
+  const toggle = () => {
+    if (on) { stop(); return; }
+    let a = ref.current;
+    if (!a) {
+      a = ref.current = new Audio(track.src);
+      a.ontimeupdate = () => onPart(partAt(track.starts, a.currentTime));
+      a.onended = stop;
+      a.onerror = () => { stop(); setFailed(true); };
+    }
+    a.currentTime = 0;
+    setFailed(false); setOn(true); onPart(0);
+    a.play().catch(() => { stop(); setFailed(true); });
   };
   return (
     <div className="row">
-      <button type="button" className="btn ghost" onClick={toggle}>{on ? t('stopListen') : t('listen')}</button>
-      {note && <span className="small muted">{note}</span>}
+      <button type="button" className="btn ghost" onClick={toggle}>
+        {on ? t('stopListen') : t('listen')}{track.lang !== lang && !on ? ` ${t('inEnglish')}` : ''}
+      </button>
+      {failed && <span className="small muted">{t('audioFailed')}</span>}
     </div>
   );
 }

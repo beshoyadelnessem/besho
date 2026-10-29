@@ -40,7 +40,7 @@ const en = {
   settings: 'Settings',
   // exercise
   injured: '● Operated leg', sets: 'sets', reps: 'reps', hold: 'hold', steps: 'Position and steps', caution: 'Caution',
-  cautionYou: 'Caution from your therapist', listen: '🔊 Read aloud', stopListen: '■ Stop reading', noVoice: 'Your device has no voice for this language. Add one in your phone settings: Android → Text-to-speech → Install voice data; iPhone → Accessibility → Spoken Content → Voices.',
+  cautionYou: 'Caution from your therapist', listen: '🔊 Read aloud', stopListen: '■ Stop reading', inEnglish: '', audioFailed: 'Could not play the audio. Check your connection and try again.',
   coachStart: '▶ Do it with me', coachStop: '■ Stop counting', finish: '✓ I finished', doneBack: 'Back to exercises',
   coachSet: 'Set {s}/{S} · Rep {r}/{R}', cueMove: 'Slowly…', cueHold: 'Hold {n}', cueBack: 'Back slowly', cueRest: 'Rest', allDone: 'All sets done 👏',
   doneOk: 'Great! Recorded on time 🔥', doneLate: 'Recorded, but late. Try to keep the time next session.',
@@ -127,7 +127,7 @@ const ar = {
   chat: 'الرسايل', chatWith: 'رسايلك مع الأخصائي', chatPh: 'اكتب رسالة...', chatClosed: 'الرسايل مقفولة. الأخصائي هو اللي يفتحها.',
   settings: 'الإعدادات',
   injured: '● الرجل المصابة', sets: 'مجموعات', reps: 'تكرار', hold: 'ثبات', steps: 'الوضع والخطوات', caution: 'تنبيه مهم',
-  cautionYou: 'تنبيه من الأخصائي ليك', listen: '🔊 اسمع الخطوات', stopListen: '■ وقّف القراءة', noVoice: 'جهازك مفيهوش صوت عربي. نزّله من إعدادات الموبايل: أندرويد ← تحويل النص إلى كلام ← تثبيت بيانات الصوت ← العربية. آيفون ← تسهيلات الاستخدام ← المحتوى المنطوق ← الأصوات ← العربية.',
+  cautionYou: 'تنبيه من الأخصائي ليك', listen: '🔊 اسمع الخطوات', stopListen: '■ وقّف القراءة', inEnglish: '(بالإنجليزي)', audioFailed: 'الصوت ماشتغلش. اتأكد من النت وجرّب تاني.',
   coachStart: '▶ ابدأ معايا', coachStop: '■ وقّف العدّ', finish: '✓ خلّصت التمرين', doneBack: 'رجوع للتمارين',
   coachSet: 'مجموعة {s}/{S} · تكرار {r}/{R}', cueMove: 'ببطء...', cueHold: 'اثبت {n}', cueBack: 'ارجع ببطء', cueRest: 'ارتاح', allDone: 'خلّصت كل المجموعات 👏',
   doneOk: 'برافو! اتسجل في معاده 🔥', doneLate: 'اتسجل، بس كان متأخر. حاول تلتزم بالمعاد المرة الجاية.',
@@ -211,7 +211,7 @@ const de = {
   chatClosed: 'Nachrichten sind geschlossen. Ihre Therapeutin / Ihr Therapeut kann sie öffnen.',
   settings: 'Einstellungen',
   injured: '● Operiertes Bein', sets: 'Sätze', reps: 'Wdh.', hold: 'Halten', steps: 'Position und Ablauf', caution: 'Achtung',
-  cautionYou: 'Hinweis Ihrer Therapeutin / Ihres Therapeuten', listen: '🔊 Vorlesen', stopListen: '■ Vorlesen stoppen', noVoice: 'Ihr Gerät hat keine deutsche Stimme. Installieren Sie eine in den Einstellungen: Android → Text-in-Sprache → Sprachdaten installieren; iPhone → Bedienungshilfen → Gesprochene Inhalte → Stimmen.',
+  cautionYou: 'Hinweis Ihrer Therapeutin / Ihres Therapeuten', listen: '🔊 Vorlesen', stopListen: '■ Vorlesen stoppen', inEnglish: '(auf Englisch)', audioFailed: 'Audio konnte nicht abgespielt werden. Bitte Verbindung prüfen und erneut versuchen.',
   coachStart: '▶ Mit mir üben', coachStop: '■ Zählen stoppen', finish: '✓ Fertig', doneBack: 'Zurück zu den Übungen',
   coachSet: 'Satz {s}/{S} · Wdh. {r}/{R}', cueMove: 'Langsam…', cueHold: 'Halten {n}', cueBack: 'Langsam zurück', cueRest: 'Pause', allDone: 'Alle Sätze geschafft 👏',
   doneOk: 'Super! Pünktlich erfasst 🔥', doneLate: 'Erfasst, aber verspätet. Versuchen Sie nächstes Mal die Zeit einzuhalten.',
@@ -263,7 +263,6 @@ const de = {
 export const DICTS = { en, ar, de };
 export const LANGS = [{ code: 'en', label: 'English' }, { code: 'ar', label: 'العربية' }, { code: 'de', label: 'Deutsch' }];
 export const LOCALE = { en: 'en-GB', ar: 'ar-EG-u-nu-latn', de: 'de-DE' };
-export const SPEECH = { en: 'en-US', ar: 'ar-EG', de: 'de-DE' };
 
 export function translate(lang, key, vars) {
   let s = DICTS[lang]?.[key] ?? en[key] ?? key;
