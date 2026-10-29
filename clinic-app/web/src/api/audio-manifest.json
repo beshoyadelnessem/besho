@@ -1,1 +1,364 @@
-{}
+{
+ "abd": {
+  "en": {
+   "f": {
+    "hasTip": true,
+    "hash": "fb288f4480ba",
+    "src": "audio/abd.en.f.mp3",
+    "starts": [
+     0.0,
+     3.04,
+     9.3,
+     13.71,
+     18.77,
+     21.4
+    ]
+   },
+   "m": {
+    "hasTip": true,
+    "hash": "b7dc44423ff8",
+    "src": "audio/abd.en.m.mp3",
+    "starts": [
+     0.0,
+     3.07,
+     9.08,
+     13.57,
+     18.5,
+     21.23
+    ]
+   }
+  }
+ },
+ "balance": {
+  "en": {
+   "f": {
+    "hasTip": true,
+    "hash": "5786695a2463",
+    "src": "audio/balance.en.f.mp3",
+    "starts": [
+     0.0,
+     2.83,
+     10.33,
+     14.33,
+     19.8,
+     23.13
+    ]
+   },
+   "m": {
+    "hasTip": true,
+    "hash": "4d1cd4b77600",
+    "src": "audio/balance.en.m.mp3",
+    "starts": [
+     0.0,
+     2.83,
+     9.83,
+     13.71,
+     19.13,
+     22.51
+    ]
+   }
+  }
+ },
+ "bridge": {
+  "en": {
+   "f": {
+    "hasTip": true,
+    "hash": "f0b50fd5bd6f",
+    "src": "audio/bridge.en.f.mp3",
+    "starts": [
+     0.0,
+     2.37,
+     10.91,
+     16.59,
+     23.02,
+     26.25
+    ]
+   },
+   "m": {
+    "hasTip": true,
+    "hash": "673aa4b98790",
+    "src": "audio/bridge.en.m.mp3",
+    "starts": [
+     0.0,
+     2.42,
+     10.96,
+     16.54,
+     22.66,
+     25.91
+    ]
+   }
+  }
+ },
+ "calf": {
+  "en": {
+   "f": {
+    "hasTip": true,
+    "hash": "b264868f4703",
+    "src": "audio/calf.en.f.mp3",
+    "starts": [
+     0.0,
+     2.47,
+     7.28,
+     10.78,
+     15.19,
+     18.43
+    ]
+   },
+   "m": {
+    "hasTip": true,
+    "hash": "e4e24413f1db",
+    "src": "audio/calf.en.m.mp3",
+    "starts": [
+     0.0,
+     2.42,
+     7.09,
+     10.61,
+     15.02,
+     18.28
+    ]
+   }
+  }
+ },
+ "hamcurl": {
+  "en": {
+   "f": {
+    "hasTip": true,
+    "hash": "e97334effffd",
+    "src": "audio/hamcurl.en.f.mp3",
+    "starts": [
+     0.0,
+     2.99,
+     10.33,
+     13.64,
+     18.79,
+     21.28
+    ]
+   },
+   "m": {
+    "hasTip": true,
+    "hash": "c7a1de259869",
+    "src": "audio/hamcurl.en.m.mp3",
+    "starts": [
+     0.0,
+     3.14,
+     10.4,
+     13.83,
+     18.98,
+     21.5
+    ]
+   }
+  }
+ },
+ "heelslide": {
+  "en": {
+   "f": {
+    "hasTip": true,
+    "hash": "86b98550be53",
+    "src": "audio/heelslide.en.f.mp3",
+    "starts": [
+     0.0,
+     2.49,
+     10.62,
+     14.29,
+     20.09,
+     24.04
+    ]
+   },
+   "m": {
+    "hasTip": true,
+    "hash": "e04f8e6f11b0",
+    "src": "audio/heelslide.en.m.mp3",
+    "starts": [
+     0.0,
+     2.51,
+     10.67,
+     14.41,
+     20.06,
+     24.04
+    ]
+   }
+  }
+ },
+ "prone": {
+  "en": {
+   "f": {
+    "hasTip": true,
+    "hash": "2f19c6c2a75d",
+    "src": "audio/prone.en.f.mp3",
+    "starts": [
+     0.0,
+     2.42,
+     11.48,
+     16.64,
+     21.19,
+     25.36
+    ]
+   },
+   "m": {
+    "hasTip": true,
+    "hash": "c4e90fed3f2a",
+    "src": "audio/prone.en.m.mp3",
+    "starts": [
+     0.0,
+     2.49,
+     11.34,
+     16.25,
+     20.83,
+     25.0
+    ]
+   }
+  }
+ },
+ "pumps": {
+  "en": {
+   "f": {
+    "hasTip": true,
+    "hash": "1ea1c0bdf298",
+    "src": "audio/pumps.en.f.mp3",
+    "starts": [
+     0.0,
+     2.44,
+     10.09,
+     13.52,
+     18.6,
+     21.67
+    ]
+   },
+   "m": {
+    "hasTip": true,
+    "hash": "169c9b6bcfa9",
+    "src": "audio/pumps.en.m.mp3",
+    "starts": [
+     0.0,
+     2.56,
+     9.71,
+     13.18,
+     18.05,
+     21.28
+    ]
+   }
+  }
+ },
+ "quadset": {
+  "en": {
+   "f": {
+    "hasTip": true,
+    "hash": "9def0d315e5b",
+    "src": "audio/quadset.en.f.mp3",
+    "starts": [
+     0.0,
+     2.42,
+     11.29,
+     18.46,
+     24.24,
+     28.53
+    ]
+   },
+   "m": {
+    "hasTip": true,
+    "hash": "3f49c0d107a3",
+    "src": "audio/quadset.en.m.mp3",
+    "starts": [
+     0.0,
+     2.44,
+     11.27,
+     18.75,
+     24.65,
+     28.89
+    ]
+   }
+  }
+ },
+ "slr": {
+  "en": {
+   "f": {
+    "hasTip": true,
+    "hash": "28046ceabf2b",
+    "src": "audio/slr.en.f.mp3",
+    "starts": [
+     0.0,
+     2.73,
+     10.72,
+     16.35,
+     21.29,
+     25.65,
+     30.8
+    ]
+   },
+   "m": {
+    "hasTip": true,
+    "hash": "7b6a8b7508bd",
+    "src": "audio/slr.en.m.mp3",
+    "starts": [
+     0.0,
+     2.71,
+     10.0,
+     15.51,
+     20.45,
+     24.86,
+     29.89
+    ]
+   }
+  }
+ },
+ "squat": {
+  "en": {
+   "f": {
+    "hasTip": true,
+    "hash": "c20ec442f77e",
+    "src": "audio/squat.en.f.mp3",
+    "starts": [
+     0.0,
+     4.39,
+     14.84,
+     20.07,
+     25.2,
+     28.12
+    ]
+   },
+   "m": {
+    "hasTip": true,
+    "hash": "250379259941",
+    "src": "audio/squat.en.m.mp3",
+    "starts": [
+     0.0,
+     4.19,
+     14.53,
+     19.88,
+     24.94,
+     27.95
+    ]
+   }
+  }
+ },
+ "stepup": {
+  "en": {
+   "f": {
+    "hasTip": true,
+    "hash": "38d0bede9a3e",
+    "src": "audio/stepup.en.f.mp3",
+    "starts": [
+     0.0,
+     2.3,
+     10.38,
+     14.5,
+     18.67,
+     22.79
+    ]
+   },
+   "m": {
+    "hasTip": true,
+    "hash": "9c6d6849dc0a",
+    "src": "audio/stepup.en.m.mp3",
+    "starts": [
+     0.0,
+     2.44,
+     10.69,
+     14.93,
+     19.22,
+     23.08
+    ]
+   }
+  }
+ }
+}
