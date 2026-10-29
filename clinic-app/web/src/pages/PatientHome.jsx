@@ -1,109 +1,149 @@
 import { useEffect, useState } from 'react';
 import { api } from '../api/index.js';
-import Figure from '../components/Figure.jsx';
-import { STATE_LABEL, DAY_LABEL, addDays, clock, dateLabel, dayName, todayISO } from '../lib/format.js';
+import { exText, useI18n } from '../i18n.js';
+import { DayStrip, ErrorBox, Figure, Logo, useError } from '../components/ui.jsx';
+import { addDays, clock, dateLabel, dateTime, dayName, todayISO } from '../lib/format.js';
+
+const BADGE_ORDER = ['streak3', 'streak7', 'streak14', 'streak30'];
 
 export default function PatientHome({ me, look, library, go }) {
+  const { t, lang } = useI18n();
   const [plan, setPlan] = useState(null);
   const [streak, setStreak] = useState(null);
   const [days, setDays] = useState([]);
+  const [badges, setBadges] = useState([]);
+  const [score, setScore] = useState(undefined);
+  const [appt, setAppt] = useState(null);
+  const [unread, setUnread] = useState(0);
   const [pain, setPain] = useState(false);
   const [painNote, setPainNote] = useState('');
   const [msg, setMsg] = useState('');
-  const [error, setError] = useState('');
+  const [error, setError] = useError();
 
   const load = async () => {
-    const t = todayISO();
-    const [p, s, d] = await Promise.all([api.todayPlan(), api.streak(), api.days(null, addDays(t, -13), t)]);
-    setPlan(p); setStreak(s); setDays(d);
+    const d0 = todayISO();
+    const [p, s, d, b, sc, ap, un] = await Promise.all([api.todayPlan(), api.streak(), api.days(null, addDays(d0, -13), d0),
+      api.badges(), api.painScores(null, d0), api.appointments(), api.unread()]);
+    setPlan(p); setStreak(s); setDays(d); setBadges(b.map((x) => x.kind));
+    setScore(sc.find((x) => x.day === d0)?.score ?? null);
+    setAppt(ap.find((a) => a.status === 'booked' && new Date(a.starts_at) > new Date()) || null);
+    setUnread(Object.values(un).reduce((a, n) => a + n, 0));
   };
-  useEffect(() => { load().catch((e) => setError(e.message)); const i = setInterval(load, 60000); return () => clearInterval(i); }, []);
+  useEffect(() => { load().catch(setError); const i = setInterval(() => load().catch(() => {}), 60000); return () => clearInterval(i); }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const restore = async () => {
-    setError('');
-    try { await api.restore(); setMsg('رجّعنا الـ streak بتاعك 🔥 خلّي بالك، ده الاسترجاع الوحيد للأسبوع ده.'); await load(); } catch (e) { setError(e.message); }
-  };
-  const sendPain = async () => {
-    try { await api.reportPain(painNote); setPain(false); setMsg('بلّغنا الأخصائي. النهارده يوم راحة، والـ streak بتاعك محفوظ.'); await load(); } catch (e) { setError(e.message); }
-  };
-
+  const act = async (fn, ok) => { setError(null); try { await fn(); if (ok) setMsg(ok); await load(); } catch (e) { setError(e); } };
   const byId = Object.fromEntries((library || []).map((e) => [e.slug, e]));
   const doneCount = plan?.filter((p) => p.state === 'done').length ?? 0;
+  const missed2 = days.length >= 3 && days[days.length - 2].status === 'missed' && days[days.length - 3].status === 'missed';
 
   return (
     <div className="page">
       <div className="top">
-        <div className="logo"><svg width="22" height="22" viewBox="0 0 24 24"><path d="M12 3v18M3 12h18" stroke="var(--on-teal)" strokeWidth="4" strokeLinecap="round" /></svg></div>
-        <div><b>أهلاً يا {me.full_name.split(' ')[0]}</b><div className="muted small">{dateLabel(todayISO())}</div></div>
-        {api.demo && <span className="demo-badge">تجريبي</span>}
-        <button className="btn ghost" style={{ marginInlineStart: api.demo ? 0 : 'auto' }} onClick={() => go('prefs')} aria-label="الإعدادات">⚙︎</button>
+        <Logo />
+        <div><b>{t('hello', { name: me.full_name.split(' ')[0] })}</b><div className="muted small">{dateLabel(todayISO(), lang)}</div></div>
+        {api.demo && <span className="demo-badge">{t('demo')}</span>}
+        <div className="row" style={{ marginInlineStart: api.demo ? 0 : 'auto' }}>
+          {me.chat_enabled && (
+            <button className="btn ghost icon-btn" onClick={() => go('chat')} aria-label={t('chat')}>💬{unread > 0 && <span className="dot">{unread}</span>}</button>
+          )}
+          <button className="btn ghost icon-btn" onClick={() => go('prefs')} aria-label={t('settings')}>⚙︎</button>
+        </div>
       </div>
+
+      {missed2 && (
+        <div className="cheer"><b>{t('missYou')}</b><div>{t('missYouBody')}</div></div>
+      )}
 
       {streak && (
         <div className="streak">
           <svg width="44" height="52" viewBox="0 0 44 52" aria-hidden="true"><path d="M22 2c4 10 16 16 16 30a16 16 0 0 1-32 0c0-8 5-12 8-18 2 6 6 8 6 8 0-8 0-14 2-20z" fill="var(--flame)" /></svg>
           <div style={{ flex: 1 }}>
             <div className="num">{streak.streak}</div>
-            <div className="small muted">{streak.streak === 1 ? 'يوم' : 'أيام'} ورا بعض</div>
+            <div className="small muted">{streak.streak === 1 ? t('streakDay') : t('streakDays')}</div>
           </div>
           <div className="small muted" style={{ textAlign: 'end' }}>
-            {streak.restore_used_this_week ? 'استخدمت استرجاع الأسبوع ده' : 'عندك استرجاع واحد الأسبوع ده'}
-            <div>الأسبوع يتجدد {dateLabel(streak.cycle_ends)}</div>
+            {streak.restore_used_this_week ? t('restoreUsed') : t('restoreLeft')}
+            <div>{t('weekRenews', { date: dateLabel(streak.cycle_ends, lang) })}</div>
           </div>
         </div>
       )}
+      <div className="badges" aria-label={t('badges')}>
+        {BADGE_ORDER.map((k) => (
+          <span key={k} className={`badge ${badges.includes(k) ? 'won' : ''}`} title={t('badge_' + k)}>
+            <span aria-hidden="true">{badges.includes(k) ? '🏅' : '○'}</span>{t('badge_' + k)}
+          </span>
+        ))}
+      </div>
       {streak?.restorable_day && (
         <div className="restore">
-          <div style={{ flex: 1, minWidth: 180 }}><b>فوّت تمارين يوم {dayName(streak.restorable_day)} والـ streak وقع.</b>
-            <div className="small">تقدر ترجّعه دلوقتي، ومعاك مرة واحدة بس في الأسبوع.</div></div>
-          <button className="btn flame" onClick={restore}>رجّع الـ streak</button>
+          <div style={{ flex: 1, minWidth: 180 }}><b>{t('missedDay', { day: dayName(streak.restorable_day, lang) })}</b>
+            <div className="small">{t('restoreHint')}</div></div>
+          <button className="btn flame" onClick={() => act(() => api.restore(), t('restored'))}>{t('restoreBtn')}</button>
         </div>
       )}
-      {msg && <div className="notice">{msg}</div>}
-      {error && <div className="error">{error}</div>}
+      {msg && <div className="notice" role="status">{msg}</div>}
+      <ErrorBox error={error} />
+
+      {appt && (
+        <div className="card row" style={{ gap: 12 }}>
+          <span aria-hidden="true" style={{ fontSize: 26 }}>📅</span>
+          <div><b>{t('nextAppt')}</b><div className="small">{dateTime(appt.starts_at, lang)}</div></div>
+        </div>
+      )}
 
       <div className="row spread">
-        <h2 style={{ fontSize: 18 }}>تمارين النهارده</h2>
-        {plan && <span className="chip">{doneCount} من {plan.length}</span>}
+        <h2 style={{ fontSize: 18 }}>{t('today')}</h2>
+        {plan && <span className="chip">{t('ofN', { done: doneCount, total: plan.length })}</span>}
       </div>
-      {plan?.length === 0 && <div className="card muted">مفيش تمارين النهارده. الأخصائي هيضيفلك برنامجك.</div>}
+      {plan?.length === 0 && <div className="card muted">{t('noExercises')}</div>}
       <div className="stack">
         {plan?.map((s) => {
           const ex = byId[s.exercise_slug];
           const locked = s.state === 'upcoming' || s.state === 'closed';
           return (
             <button key={s.prescription_id} className={`session ${s.state} ${locked ? 'locked' : ''}`}
-              onClick={() => (locked ? setMsg(s.state === 'upcoming' ? `التمرين ده بيفتح الساعة ${clock(s.opens_at)}.` : 'وقت التمرين ده خلص واتقفل.') : go('ex-' + s.prescription_id))}>
+              onClick={() => (locked ? setMsg(s.state === 'upcoming' ? t('opensAt', { time: clock(s.opens_at, lang) }) : t('closedMsg')) : go('ex-' + s.prescription_id))}>
               <div className="thumb">{ex && <Figure slug={ex.slug} look={look} still />}</div>
               <div className="info">
-                <div className="nm">{ex?.name_ar}</div>
-                <div className="small muted">{clock(s.opens_at)} – {clock(s.late_at)}{s.state !== 'done' && ` · آخر فرصة ${clock(s.closes_at)}`}</div>
-                <span className={`chip ${s.state}`}>{STATE_LABEL[s.state]}{s.state === 'done' && s.late ? ' (متأخر)' : ''}</span>
+                <div className="nm">{exText(ex, lang).name}</div>
+                <div className="small muted">{t('window', { from: clock(s.opens_at, lang), to: clock(s.late_at, lang) })}{s.state !== 'done' && ` · ${t('lastChance', { time: clock(s.closes_at, lang) })}`}</div>
+                <span className={`chip ${s.state}`}>{t('st_' + s.state)}{s.state === 'done' && s.late ? ` (${t('late')})` : ''}</span>
               </div>
-              <span aria-hidden="true" style={{ fontSize: 20 }}>{locked ? '🔒' : '‹'}</span>
+              <span aria-hidden="true" style={{ fontSize: 20 }}>{locked ? '🔒' : (lang === 'ar' ? '‹' : '›')}</span>
             </button>
           );
         })}
       </div>
 
       <div className="card stack">
-        <b>آخر 14 يوم</b>
-        <div className="days">
-          {days.map((d) => <span key={d.day} className={d.status} title={`${dateLabel(d.day)}: ${DAY_LABEL[d.status]}`}>{Number(d.day.slice(8))}</span>)}
+        <b>{t('scoreQ')}</b>
+        {score !== null && score !== undefined && <div className="small muted">{t('scoreToday', { n: score })}</div>}
+        <div className="scale" role="group" aria-label={t('scoreQ')}>
+          {Array.from({ length: 11 }, (_, n) => (
+            <button key={n} type="button" aria-pressed={score === n} style={{ '--h': `${120 - n * 12}` }}
+              onClick={() => act(() => api.logPainScore(n), t('scoreSaved'))}>{n}</button>
+          ))}
         </div>
-        <div className="row small muted">
-          <span className="chip done">خلّص</span><span className="chip missed">فوّت</span><span className="chip rest">راحة / اتسترجع</span>
-        </div>
+        <div className="row spread small muted"><span>0 · {t('scoreLow')}</span><span>10 · {t('scoreHigh')}</span></div>
+      </div>
+
+      <div className="card stack">
+        <b>{t('last14')}</b>
+        <DayStrip days={days} />
+        <div className="row small"><span className="chip done">{t('dDone')}</span><span className="chip missed">{t('dMissed')}</span><span className="chip rest">{t('dRest')}</span></div>
       </div>
 
       {!pain ? (
-        <button className="btn danger block" onClick={() => setPain(true)}>عندي ألم / مش قادر أتمرن النهارده</button>
+        <button className="btn danger block" onClick={() => setPain(true)}>{t('painBtn')}</button>
       ) : (
         <div className="card stack" style={{ borderColor: 'var(--red)' }}>
-          <b>هنبلّغ الأخصائي بتاعك</b>
-          <div className="small muted">النهارده هيتحسب يوم راحة والـ streak مش هيقع. لو الألم شديد جدًا أو الركبة سخنة وحمرا، كلّم العيادة أو الطوارئ على طول.</div>
-          <textarea id="pain-note" value={painNote} onChange={(e) => setPainNote(e.target.value)} placeholder="اكتب حاسس بإيه (اختياري)" />
-          <div className="row"><button className="btn danger" onClick={sendPain}>بلّغ الأخصائي</button><button className="btn ghost" onClick={() => setPain(false)}>إلغاء</button></div>
+          <b>{t('painTitle')}</b>
+          <div className="small muted">{t('painBody')}</div>
+          <textarea id="pain-note" value={painNote} onChange={(e) => setPainNote(e.target.value)} placeholder={t('painPh')} />
+          <div className="row">
+            <button className="btn danger" onClick={() => act(() => api.reportPain(painNote), t('painSent')).then(() => setPain(false))}>{t('painSend')}</button>
+            <button className="btn ghost" onClick={() => setPain(false)}>{t('cancel')}</button>
+          </div>
         </div>
       )}
     </div>

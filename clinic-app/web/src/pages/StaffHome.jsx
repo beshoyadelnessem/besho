@@ -1,113 +1,174 @@
 import { useEffect, useState } from 'react';
 import { api } from '../api/index.js';
-import { todayISO } from '../lib/format.js';
+import { LANGS, exText, useI18n } from '../i18n.js';
+import { ErrorBox, LangSwitch, Logo, useError } from '../components/ui.jsx';
+import { clock, dateTime, todayISO } from '../lib/format.js';
 
 function AddPatient({ me, staff, onDone }) {
-  const [f, setF] = useState({ full_name: '', phone: '', password: '', treatment_start: todayISO(), therapist_id: '' });
-  const [error, setError] = useState('');
+  const { t, lang } = useI18n();
+  const [f, setF] = useState({ full_name: '', phone: '', password: '', treatment_start: todayISO(), therapist_id: '', lang });
+  const [error, setError] = useError();
   const [busy, setBusy] = useState(false);
   const set = (k) => (e) => setF({ ...f, [k]: e.target.value });
   const submit = async (e) => {
-    e.preventDefault(); setBusy(true); setError('');
-    try { await api.createUser({ role: 'patient', ...f }); onDone(`اتضاف ${f.full_name}. ادّيله رقمه والباسورد عشان يدخل.`); }
-    catch (err) { setError(err.message); setBusy(false); }
+    e.preventDefault(); setBusy(true); setError(null);
+    try { await api.createUser({ role: 'patient', ...f }); onDone(t('patientAdded', { name: f.full_name })); }
+    catch (err) { setError(err); setBusy(false); }
   };
   return (
     <form className="card stack" onSubmit={submit}>
-      <b>مريض جديد</b>
+      <b>{t('newPatient').replace('+ ', '')}</b>
       <div className="formgrid">
-        <label className="field">الاسم<input id="np-name" value={f.full_name} onChange={set('full_name')} required /></label>
-        <label className="field">رقم الموبايل<input id="np-phone" value={f.phone} onChange={set('phone')} inputMode="tel" dir="ltr" placeholder="01xxxxxxxxx" required /></label>
-        <label className="field">باسورد مؤقت<input id="np-pass" value={f.password} onChange={set('password')} dir="ltr" minLength={8} required /></label>
-        <label className="field">بداية العلاج<input id="np-start" type="date" value={f.treatment_start} onChange={set('treatment_start')} required /></label>
+        <label className="field">{t('name')}<input id="np-name" value={f.full_name} onChange={set('full_name')} required /></label>
+        <label className="field">{t('phone')}<input id="np-phone" value={f.phone} onChange={set('phone')} inputMode="tel" dir="ltr" required /></label>
+        <label className="field">{t('tempPass')}<input id="np-pass" value={f.password} onChange={set('password')} dir="ltr" minLength={8} required /></label>
+        <label className="field">{t('startDate')}<input id="np-start" type="date" value={f.treatment_start} onChange={set('treatment_start')} required /></label>
+        <label className="field">{t('patientLang')}
+          <select id="np-lang" value={f.lang} onChange={set('lang')}>{LANGS.map((l) => <option key={l.code} value={l.code}>{l.label}</option>)}</select>
+        </label>
         {me.role === 'admin' && (
-          <label className="field">الأخصائي المسؤول
+          <label className="field">{t('responsible')}
             <select id="np-therapist" value={f.therapist_id} onChange={set('therapist_id')} required>
-              <option value="">اختار</option>
-              {staff.filter((s) => s.role === 'therapist').map((s) => <option key={s.id} value={s.id}>{s.full_name}</option>)}
+              <option value="">{t('choose')}</option>
+              {staff.map((s) => <option key={s.id} value={s.id}>{s.full_name}</option>)}
             </select>
           </label>
         )}
       </div>
-      <div className="small muted">المريض بيدخل برقم الموبايل والباسورد ده. أسبوع الاسترجاع بيتحسب من بداية العلاج.</div>
-      {error && <div className="error">{error}</div>}
-      <div className="row"><button className="btn" disabled={busy}>إضافة</button><button type="button" className="btn ghost" onClick={() => onDone('')}>إلغاء</button></div>
+      <div className="small muted">{t('phoneLoginNote')}</div>
+      <ErrorBox error={error} />
+      <div className="row"><button className="btn" disabled={busy}>{t('add')}</button><button type="button" className="btn ghost" onClick={() => onDone('')}>{t('cancel')}</button></div>
     </form>
   );
 }
 
-function AddStaff({ onDone }) {
-  const [f, setF] = useState({ full_name: '', email: '', password: '', role: 'therapist' });
-  const [error, setError] = useState('');
+export function AddStaff({ clinicId, onDone, allowAdmin = true }) {
+  const { t, lang } = useI18n();
+  const [f, setF] = useState({ full_name: '', email: '', password: '', role: 'therapist', lang });
+  const [error, setError] = useError();
   const set = (k) => (e) => setF({ ...f, [k]: e.target.value });
   const submit = async (e) => {
-    e.preventDefault(); setError('');
-    try { await api.createUser(f); onDone(`اتضاف ${f.full_name}.`); } catch (err) { setError(err.message); }
+    e.preventDefault(); setError(null);
+    try { await api.createUser({ ...f, clinic_id: clinicId }); onDone(t('staffAdded', { name: f.full_name })); } catch (err) { setError(err); }
   };
   return (
     <form className="card stack" onSubmit={submit}>
-      <b>دكتور / أخصائي جديد</b>
+      <b>{t('newStaff')}</b>
       <div className="formgrid">
-        <label className="field">الاسم<input id="ns-name" value={f.full_name} onChange={set('full_name')} required /></label>
-        <label className="field">الإيميل<input id="ns-email" type="email" value={f.email} onChange={set('email')} dir="ltr" required /></label>
-        <label className="field">باسورد مؤقت<input id="ns-pass" value={f.password} onChange={set('password')} dir="ltr" minLength={8} required /></label>
-        <label className="field">الصلاحية
-          <select id="ns-role" value={f.role} onChange={set('role')}><option value="therapist">دكتور / أخصائي</option><option value="admin">أدمن</option></select>
+        <label className="field">{t('name')}<input id="ns-name" value={f.full_name} onChange={set('full_name')} required /></label>
+        <label className="field">{t('email')}<input id="ns-email" type="email" value={f.email} onChange={set('email')} dir="ltr" required /></label>
+        <label className="field">{t('tempPass')}<input id="ns-pass" value={f.password} onChange={set('password')} dir="ltr" minLength={8} required /></label>
+        <label className="field">{t('role')}
+          <select id="ns-role" value={f.role} onChange={set('role')}>
+            <option value="therapist">{t('therapist')}</option>{allowAdmin && <option value="admin">{t('admin')}</option>}
+          </select>
         </label>
       </div>
-      {error && <div className="error">{error}</div>}
-      <div className="row"><button className="btn">إضافة</button><button type="button" className="btn ghost" onClick={() => onDone('')}>إلغاء</button></div>
+      <ErrorBox error={error} />
+      <div className="row"><button className="btn">{t('add')}</button><button type="button" className="btn ghost" onClick={() => onDone('')}>{t('cancel')}</button></div>
     </form>
   );
 }
 
-export default function StaffHome({ me, go }) {
+function Templates({ library }) {
+  const { t, lang } = useI18n();
+  const [list, setList] = useState(null);
+  const load = () => api.templates().then(setList);
+  useEffect(() => { load(); }, []);
+  const byId = Object.fromEntries(library.map((e) => [e.slug, e]));
+  if (!list) return <div className="muted">{t('loading')}</div>;
+  if (!list.length) return <div className="card muted">{t('noTemplates')}</div>;
+  return (
+    <div className="stack">
+      {list.map((tp) => (
+        <div key={tp.id} className="card stack">
+          <div className="row spread"><b>{tp.name}</b><button className="btn danger" onClick={() => api.deleteTemplate(tp.id).then(load)}>{t('delete')}</button></div>
+          <div className="row">{tp.template_items.map((i, k) => <span key={k} className="chip">{clock(i.scheduled_time, lang)} · {exText(byId[i.exercise_slug], lang).name}</span>)}</div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function Appointments({ patients, staff, go }) {
+  const { t, lang } = useI18n();
+  const [list, setList] = useState(null);
+  const load = () => api.appointments().then(setList);
+  useEffect(() => { load(); }, []);
+  const pName = (id) => patients.find((p) => p.id === id)?.full_name ?? '—';
+  const sName = (id) => staff.find((s) => s.id === id)?.full_name ?? '—';
+  if (!list) return <div className="muted">{t('loading')}</div>;
+  const up = list.filter((a) => new Date(a.starts_at) >= new Date(Date.now() - 3600e3));
+  if (!up.length) return <div className="card muted">{t('none')}</div>;
+  return (
+    <div className="card table-wrap">
+      <table>
+        <thead><tr><th>{t('date')}</th><th>{t('patients')}</th><th>{t('therapist')}</th><th>{t('note')}</th><th /></tr></thead>
+        <tbody>{up.map((a) => (
+          <tr key={a.id}>
+            <td>{dateTime(a.starts_at, lang)} · {a.duration_min}′</td>
+            <td><button className="link" onClick={() => go('patient-' + a.patient_id)}>{pName(a.patient_id)}</button></td>
+            <td>{sName(a.therapist_id)}</td><td>{a.note || ''}</td>
+            <td><span className={`chip ap-${a.status}`}>{t('ap_' + a.status)}</span></td>
+          </tr>
+        ))}</tbody>
+      </table>
+    </div>
+  );
+}
+
+export default function StaffHome({ me, go, library, setLang }) {
+  const { t, lang } = useI18n();
   const [tab, setTab] = useState('patients');
   const [patients, setPatients] = useState(null);
   const [staff, setStaff] = useState([]);
   const [pain, setPain] = useState([]);
+  const [unread, setUnread] = useState({});
   const [streaks, setStreaks] = useState({});
   const [adding, setAdding] = useState(false);
   const [msg, setMsg] = useState('');
   const [q, setQ] = useState('');
+  const [error, setError] = useError();
 
   const load = async () => {
-    const [p, s, u] = await Promise.all([api.patients(), api.staff(), api.unseenPain()]);
-    setPatients(p); setStaff(s); setPain(u);
+    const [p, s, u, un] = await Promise.all([api.patients(), api.staff(), api.unseenPain(), api.unread()]);
+    setPatients(p); setStaff(s); setPain(u); setUnread(un);
     const entries = await Promise.all(p.map(async (x) => [x.id, await api.streak(x.id).catch(() => null)]));
     setStreaks(Object.fromEntries(entries));
   };
-  useEffect(() => { load(); }, []);
+  useEffect(() => { load().catch(setError); }, []); // eslint-disable-line react-hooks/exhaustive-deps
   const done = (m) => { setAdding(false); setMsg(m); if (m) load(); };
   const nameOf = (id) => staff.find((s) => s.id === id)?.full_name ?? '—';
-  const shown = (patients || []).filter((p) => !q || p.full_name.includes(q) || (p.phone || '').includes(q));
+  const shown = (patients || []).filter((p) => !q || p.full_name.toLowerCase().includes(q.toLowerCase()) || (p.phone || '').includes(q));
+  const tabs = [['patients', t('patients')], ...(me.role === 'admin' ? [['staff', t('staffTab')]] : []), ['templates', t('templatesTab')], ['appts', t('apptsTab')]];
 
   return (
     <div className="page wide">
       <div className="top">
-        <div className="logo"><svg width="22" height="22" viewBox="0 0 24 24"><path d="M12 3v18M3 12h18" stroke="var(--on-teal)" strokeWidth="4" strokeLinecap="round" /></svg></div>
-        <div><b>{me.full_name}</b><div className="muted small">{me.role === 'admin' ? 'أدمن' : 'دكتور / أخصائي'}</div></div>
-        {api.demo && <span className="demo-badge">تجريبي</span>}
-        <button className="btn ghost" style={{ marginInlineStart: api.demo ? 0 : 'auto' }} onClick={() => api.signOut()}>خروج</button>
-      </div>
-      {me.role === 'admin' && (
-        <div className="tabs" role="tablist">
-          <button role="tab" aria-selected={tab === 'patients'} onClick={() => setTab('patients')}>المرضى</button>
-          <button role="tab" aria-selected={tab === 'staff'} onClick={() => setTab('staff')}>الدكاترة والأخصائيين</button>
+        <Logo />
+        <div><b>{me.full_name}</b><div className="muted small">{t(me.role)}</div></div>
+        {api.demo && <span className="demo-badge">{t('demo')}</span>}
+        <div className="row" style={{ marginInlineStart: api.demo ? 0 : 'auto' }}>
+          <LangSwitch value={lang} onChange={(l) => { setLang(l); api.updateMe({ lang: l }); }} />
+          <button className="btn ghost" onClick={() => api.signOut()}>{t('signOut')}</button>
         </div>
-      )}
-      {msg && <div className="notice">{msg}</div>}
+      </div>
+      <div className="tabs" role="tablist">
+        {tabs.map(([k, label]) => <button key={k} role="tab" aria-selected={tab === k} onClick={() => { setTab(k); setAdding(false); }}>{label}</button>)}
+      </div>
+      {msg && <div className="notice" role="status">{msg}</div>}
+      <ErrorBox error={error} />
 
       {tab === 'patients' && (<>
         <div className="row spread">
-          <h1 style={{ fontSize: 22 }}>{me.role === 'admin' ? 'كل المرضى' : 'مرضاك'}</h1>
+          <h1 style={{ fontSize: 22 }}>{me.role === 'admin' ? t('allPatients') : t('yourPatients')}</h1>
           <div className="row">
-            <input id="search" value={q} onChange={(e) => setQ(e.target.value)} placeholder="دوّر بالاسم أو الرقم" style={{ width: 220 }} />
-            {!adding && <button className="btn" onClick={() => setAdding(true)}>+ مريض جديد</button>}
+            <input id="search" value={q} onChange={(e) => setQ(e.target.value)} placeholder={t('search')} style={{ width: 230 }} />
+            {!adding && <button className="btn" onClick={() => setAdding(true)}>{t('newPatient')}</button>}
           </div>
         </div>
-        {adding && <AddPatient me={me} staff={staff} onDone={done} />}
-        {patients === null ? <div className="muted">بيحمّل...</div> : shown.length === 0 ? <div className="card muted">مفيش مرضى لسه. دوس «مريض جديد».</div> : (
+        {adding && <AddPatient me={me} staff={staff.filter((s) => s.role === 'therapist')} onDone={done} />}
+        {patients === null ? <div className="muted">{t('loading')}</div> : shown.length === 0 ? <div className="card muted">{t('noPatients')}</div> : (
           <div className="stack">
             {shown.map((p) => {
               const cur = p.assignments.find((a) => a.active);
@@ -117,12 +178,15 @@ export default function StaffHome({ me, go }) {
               return (
                 <button key={p.id} className="prow" onClick={() => go('patient-' + p.id)}>
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <div className="nm">{p.full_name} {alerts > 0 && <span className="badge-red">ألم ({alerts})</span>}</div>
-                    <div className="small muted"><span dir="ltr">{p.phone}</span>{me.role === 'admin' && ` · ${nameOf(cur?.therapist_id)}`}{!mineNow && ' · اتنقل لأخصائي تاني (قراءة بس)'}</div>
+                    <div className="nm">{p.full_name}{' '}
+                      {alerts > 0 && <span className="badge-red">{t('painBadge', { n: alerts })}</span>}{' '}
+                      {unread[p.id] > 0 && <span className="badge-teal">💬 {t('unreadBadge', { n: unread[p.id] })}</span>}
+                    </div>
+                    <div className="small muted"><span dir="ltr">{p.phone}</span>{me.role === 'admin' && ` · ${nameOf(cur?.therapist_id)}`}{!mineNow && ` · ${t('movedAway')}`}</div>
                   </div>
                   {st && <span className="chip rest">🔥 {st.streak}</span>}
-                  {!p.onboarded && <span className="chip upcoming">لسه مادخلش</span>}
-                  <span aria-hidden="true">‹</span>
+                  {!p.onboarded && <span className="chip upcoming">{t('notSignedYet')}</span>}
+                  <span aria-hidden="true">{lang === 'ar' ? '‹' : '›'}</span>
                 </button>
               );
             })}
@@ -131,17 +195,20 @@ export default function StaffHome({ me, go }) {
       </>)}
 
       {tab === 'staff' && me.role === 'admin' && (<>
-        <div className="row spread"><h1 style={{ fontSize: 22 }}>الدكاترة والأخصائيين</h1>{!adding && <button className="btn" onClick={() => setAdding(true)}>+ إضافة</button>}</div>
+        <div className="row spread"><h1 style={{ fontSize: 22 }}>{t('staffTab')}</h1>{!adding && <button className="btn" onClick={() => setAdding(true)}>+ {t('add')}</button>}</div>
         {adding && <AddStaff onDone={done} />}
         <div className="card table-wrap">
-          <table><thead><tr><th>الاسم</th><th>الصلاحية</th><th>عدد المرضى</th></tr></thead><tbody>
+          <table><thead><tr><th>{t('name')}</th><th>{t('role')}</th><th>{t('patientsCount')}</th></tr></thead><tbody>
             {staff.map((s) => (
-              <tr key={s.id}><td>{s.full_name}</td><td>{s.role === 'admin' ? 'أدمن' : 'دكتور / أخصائي'}</td>
+              <tr key={s.id}><td>{s.full_name}</td><td>{t(s.role)}</td>
                 <td>{(patients || []).filter((p) => p.assignments.some((a) => a.active && a.therapist_id === s.id)).length}</td></tr>
             ))}
           </tbody></table>
         </div>
       </>)}
+
+      {tab === 'templates' && <Templates library={library} />}
+      {tab === 'appts' && <Appointments patients={patients || []} staff={staff} go={go} />}
     </div>
   );
 }

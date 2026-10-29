@@ -1,21 +1,31 @@
 <!doctype html>
 <html><head><meta charset="utf-8"><style>
 :root { --prop: #D7E6E2; --prop-strong: #B9D2CC; }
-body { margin: 0; background: #fff; display: grid; grid-template-columns: repeat(4, 360px); gap: 0; font: 13px sans-serif; }
+body { margin: 0; background: #fff; font: 13px sans-serif; }
+.grid { display: grid; grid-template-columns: repeat(var(--cols, 4), 300px); }
 .c { border: 1px solid #eee; } .c div { text-align: center; }
 </style></head><body>
+<!-- Review sheet: ?mode=ages&slug=slr shows every age group; default shows all exercises for one look.
+     e.g. ?g=female&h=1&a=34  ·  ?mode=ages&slug=squat&t=1 -->
+<div class="grid" id="g"></div>
 <script type="module">
 import { POSES } from '../src/figure/poses.js';
-import { drawFigure, blend, lookFor } from '../src/figure/rig.js';
-const params = new URLSearchParams(location.search);
-const look = lookFor({ gender: params.get('g') || 'male', hijab: params.get('h') === '1', skin: +(params.get('s') || 2), age: +(params.get('a') || 30) });
-const t = +(params.get('t') ?? 1);
-for (const [name, ex] of Object.entries(POSES)) {
-  for (const tt of [0, t]) {
-    const d = document.createElement('div'); d.className = 'c';
-    d.innerHTML = `<svg viewBox="${(ex.view||[0,0,720,480]).join(" ")}" width="360" height="240">${ex.props || ''}${drawFigure(blend(ex.A, ex.B, tt), look)}</svg><div>${name} t=${tt}</div>`;
-    document.body.appendChild(d);
-  }
+import { drawScene, lookFor } from '../src/figure/rig.js';
+const q = new URLSearchParams(location.search);
+const g = document.getElementById('g');
+const cell = (ex, t, look, label) => {
+  const d = document.createElement('div'); d.className = 'c';
+  d.innerHTML = `<svg viewBox="${(ex.view || [0, 0, 720, 480]).join(' ')}" width="300" height="200">${drawScene(ex, t, look)}</svg><div>${label}</div>`;
+  g.appendChild(d);
+};
+if (q.get('mode') === 'ages') {
+  g.style.setProperty('--cols', 6);
+  const ex = POSES[q.get('slug') || 'calf']; const t = +(q.get('t') ?? 0);
+  for (const gender of ['male', 'female']) for (const age of [10, 18, 26, 36, 52, 66]) cell(ex, t, lookFor({ gender, age }), `${gender} ${age}`);
+  for (const age of [18, 26, 36, 52, 66]) cell(ex, t, lookFor({ gender: 'female', age, hijab: true }), `hijab ${age}`);
+} else {
+  const look = lookFor({ gender: q.get('g') || 'male', hijab: q.get('h') === '1', age: +(q.get('a') || 26) });
+  for (const [name, ex] of Object.entries(POSES)) for (const t of [0, 1]) cell(ex, t, look, `${name} t=${t}`);
 }
 window.done = true;
 </script></body></html>

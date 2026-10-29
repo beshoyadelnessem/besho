@@ -1,45 +1,50 @@
 import { useState } from 'react';
 import { api } from '../api/index.js';
+import { useI18n } from '../i18n.js';
+import { ErrorBox, LangSwitch, Logo, useError } from '../components/ui.jsx';
 
-export default function Login() {
+export default function Login({ setLang }) {
+  const { t, lang } = useI18n();
   const [id, setId] = useState('');
   const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
+  const [error, setError] = useError();
   const [busy, setBusy] = useState(false);
 
   const submit = async (e) => {
     e.preventDefault();
-    setBusy(true); setError('');
-    try { await api.signIn(id, password); } catch (err) { setError(err.message); }
+    setBusy(true); setError(null);
+    try { await api.signIn(id, password); } catch (err) { setError(err); }
     setBusy(false);
   };
 
   return (
-    <div className="page" style={{ maxWidth: 420, paddingTop: 40 }}>
+    <div className="page" style={{ maxWidth: 440, paddingTop: 32 }}>
       <div className="top">
-        <div className="logo"><svg width="22" height="22" viewBox="0 0 24 24"><path d="M12 3v18M3 12h18" stroke="var(--on-teal)" strokeWidth="4" strokeLinecap="round" /></svg></div>
-        <div><h1 style={{ fontSize: 22 }}>تمارين البيت</h1><div className="muted small">برنامج العلاج الطبيعي بتاعك</div></div>
+        <Logo />
+        <div><h1 style={{ fontSize: 22 }}>{t('appName')}</h1><div className="muted small">{t('tagline')}</div></div>
+        <div style={{ marginInlineStart: 'auto' }}><LangSwitch value={lang} onChange={setLang} /></div>
       </div>
       {api.demo ? (
         <div className="card stack">
-          <h2 style={{ fontSize: 18 }}>نسخة تجريبية</h2>
-          <p className="muted small" style={{ margin: 0 }}>لسه مافيش قاعدة بيانات متوصلة. جرّب السيستم بأي دور من دول، والبيانات أمثلة بتتمسح لما تعمل refresh.</p>
-          <button className="btn block" onClick={() => api.signIn('p1')}>ادخل كمريض (أحمد)</button>
-          <button className="btn ghost block" onClick={() => api.signIn('p3')}>ادخل كمريض جديد (أول مرة)</button>
-          <button className="btn ghost block" onClick={() => api.signIn('t1')}>ادخل كأخصائي (د. محمد)</button>
-          <button className="btn ghost block" onClick={() => api.signIn('admin')}>ادخل كأدمن</button>
+          <h2 style={{ fontSize: 18 }}>{t('demoTitle')}</h2>
+          <p className="muted small" style={{ margin: 0 }}>{t('demoBody')}</p>
+          <button className="btn block" onClick={() => api.signIn('p1')}>{t('demoPatient')}</button>
+          <button className="btn ghost block" onClick={() => api.signIn('p3')}>{t('demoNewPatient')}</button>
+          <button className="btn ghost block" onClick={() => api.signIn('t1')}>{t('demoTherapist')}</button>
+          <button className="btn ghost block" onClick={() => api.signIn('admin')}>{t('demoAdmin')}</button>
+          <button className="btn ghost block" onClick={() => api.signIn('owner')}>{t('demoOwner')}</button>
         </div>
       ) : (
         <form className="card stack" onSubmit={submit}>
-          <label className="field">رقم الموبايل أو الإيميل
+          <label className="field">{t('loginId')}
             <input id="login-id" value={id} onChange={(e) => setId(e.target.value)} inputMode="email" autoComplete="username" required dir="ltr" />
           </label>
-          <label className="field">الباسورد
+          <label className="field">{t('password')}
             <input id="login-password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} autoComplete="current-password" required dir="ltr" />
           </label>
-          {error && <div className="error">{error}</div>}
-          <button className="btn block" disabled={busy}>{busy ? 'بيدخل...' : 'دخول'}</button>
-          <p className="muted small" style={{ margin: 0 }}>نسيت الباسورد؟ كلّم الأخصائي بتاعك يعملك واحد جديد.</p>
+          <ErrorBox error={error} />
+          <button className="btn block" disabled={busy}>{busy ? t('signingIn') : t('signIn')}</button>
+          <p className="muted small" style={{ margin: 0 }}>{t('forgot')}</p>
         </form>
       )}
     </div>

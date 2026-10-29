@@ -2,6 +2,10 @@
 // "near" = the operated / affected leg, drawn in front.
 
 const FLOOR = 430;
+// camera framing per posture (x, y, width, height; always 3:2)
+const LYING = [100, 170, 630, 420];
+const PRONE = [60, 150, 600, 400];
+const STANDING = [40, -50, 750, 500];
 const lyingArms = {
   armN: { upper: 8, fore: 4 }, armF: { upper: 12, fore: 6 },
 };
@@ -15,26 +19,31 @@ const chair = (x = 470) => `<g fill="none" stroke="var(--prop)" stroke-width="9"
 
 export const POSES = {
   quadset: {
+    view: LYING,
     props: mat + '<circle cx="482" cy="408" r="11" fill="var(--prop-strong)"/>',
     A: { ...supine(), near: { thigh: 2, shin: 4, foot: -92 }, far: straight },
     B: { ...supine(), near: { thigh: 3, shin: 2, foot: -104 }, far: straight },
   },
   slr: {
+    view: LYING,
     props: mat,
     A: { ...supine(), near: straight, far: { ik: [478, 404], bend: -1, foot: 0 } },
     B: { ...supine(), near: { thigh: -36, shin: -36, foot: -126 }, far: { ik: [478, 404], bend: -1, foot: 0 } },
   },
   heelslide: {
+    view: LYING,
     props: mat,
     A: { ...supine(), near: straight, far: straight },
     B: { ...supine(), near: { ik: [470, 404], bend: -1, foot: 0 }, far: straight },
   },
   pumps: {
+    view: LYING,
     props: mat,
     A: { ...supine(), near: { thigh: 3, shin: 3, foot: -112 }, far: straight },
     B: { ...supine(), near: { thigh: 3, shin: 3, foot: -18 }, far: straight },
   },
   prone: {
+    view: PRONE,
     props: '<rect x="120" y="358" width="318" height="20" rx="8" fill="var(--prop)"/><rect x="140" y="378" width="12" height="52" fill="var(--prop)"/><rect x="410" y="378" width="12" height="52" fill="var(--prop)"/>',
     A: { hip: [330, 331], torso: 180, head: 178, face: 90, armN: { upper: 4, fore: 2 }, armF: { upper: 6, fore: 4 },
       near: { thigh: 0, shin: -14, foot: 62 }, far: { thigh: 0, shin: -14, foot: 62 } },
@@ -42,6 +51,7 @@ export const POSES = {
       near: { thigh: 0, shin: 4, foot: 78 }, far: { thigh: 0, shin: -14, foot: 62 } },
   },
   bridge: {
+    view: LYING,
     props: mat,
     A: { hip: [380, 396], torso: 180, head: 182, face: -90, ...lyingArms,
       near: { ik: [474, 404], bend: -1, foot: 0 }, far: { ik: [478, 404], bend: -1, foot: 0 } },
@@ -49,6 +59,7 @@ export const POSES = {
       near: { ik: [474, 404], bend: -1, foot: 0 }, far: { ik: [478, 404], bend: -1, foot: 0 } },
   },
   squat: {
+    view: STANDING,
     props: chair(),
     A: { ...standing([352, 214], -88), near: { ik: [360, 410], bend: -1, foot: 0 }, far: { ik: [354, 410], bend: -1, foot: 0 },
       armN: { ik: [470, 280], bend: 1 }, armF: { ik: [468, 286], bend: 1 } },
@@ -56,6 +67,7 @@ export const POSES = {
       armN: { ik: [470, 280], bend: 1 }, armF: { ik: [468, 286], bend: 1 } },
   },
   calf: {
+    view: STANDING,
     props: chair(),
     A: { ...standing([356, 212]), near: { ik: [362, 410], bend: -1, foot: 0 }, far: { ik: [356, 410], bend: -1, foot: 0 },
       armN: { ik: [470, 280], bend: 1 }, armF: { ik: [468, 286], bend: 1 } },
@@ -63,6 +75,7 @@ export const POSES = {
       armN: { ik: [470, 280], bend: 1 }, armF: { ik: [468, 286], bend: 1 } },
   },
   balance: {
+    view: STANDING,
     props: chair(),
     A: { ...standing([356, 214]), near: { ik: [360, 410], bend: -1, foot: 0 }, far: { ik: [350, 410], bend: -1, foot: 0 },
       armN: { ik: [470, 280], bend: 1 }, armF: { ik: [468, 286], bend: 1 } },
@@ -70,6 +83,7 @@ export const POSES = {
       armN: { ik: [470, 280], bend: 1 }, armF: { ik: [468, 286], bend: 1 } },
   },
   abd: {
+    view: LYING,
     props: mat,
     A: { hip: [380, 396], torso: 180, head: 180, face: 'front', armN: { upper: 40, fore: 0 }, armF: { upper: 6, fore: 4 },
       near: { thigh: 1, shin: 1, foot: -80 }, far: { thigh: 3, shin: 3, foot: -80 } },
@@ -77,6 +91,7 @@ export const POSES = {
       near: { thigh: -28, shin: -28, foot: -108 }, far: { thigh: 3, shin: 3, foot: -80 } },
   },
   hamcurl: {
+    view: STANDING,
     props: chair(),
     A: { ...standing([356, 212]), near: { ik: [360, 410], bend: -1, foot: 0 }, far: { ik: [352, 410], bend: -1, foot: 0 },
       armN: { ik: [470, 280], bend: 1 }, armF: { ik: [468, 286], bend: 1 } },
