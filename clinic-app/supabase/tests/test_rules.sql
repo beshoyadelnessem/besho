@@ -239,6 +239,23 @@ select public._store_password('00000000-0000-0000-0000-0000000000d1', 'Reset-by-
 select pg_temp.expect((select chosen_by_patient and set_by = 'staff' from public.patient_passwords where patient_id = '00000000-0000-0000-0000-0000000000d1'),
   'a staff reset keeps the record that the patient chose credentials before');
 
+-- ================================================================ editing the program
+set role authenticated;
+select pg_temp.as_user('00000000-0000-0000-0000-0000000000b1');
+update public.prescriptions set scheduled_time = '10:00', sets = 4, extra_caution = 'Stop at 60 degrees' where id = 6;
+select pg_temp.expect((select sets = 4 and scheduled_time = '10:00' from public.prescriptions where id = 6), 'current therapist edits time, sets and caution');
+select pg_temp.expect((select data->'changes' from public.patient_events where kind = 'rx_changed' and patient_id = '00000000-0000-0000-0000-0000000000d3' order by id desc limit 1)
+  = '{"sets": [3, 4], "scheduled_time": ["08:00:00", "10:00:00"], "extra_caution": [null, "Stop at 60 degrees"]}'::jsonb,
+  'the change (old -> new) is written to the patient record');
+update public.prescriptions set sets = 9 where id = 1;   -- p1 moved to b2: b1 now only reads
+select pg_temp.expect((select sets from public.prescriptions where id = 1) = 3, 'former therapist cannot edit the program');
+update public.prescriptions set active = false, ended_at = now() where id = 6;
+update public.prescriptions set active = true, ended_at = null where id = 6;
+select pg_temp.expect((select string_agg(kind, ',' order by id) from public.patient_events where patient_id = '00000000-0000-0000-0000-0000000000d3' and kind like 'rx_%')
+  = 'rx_added,rx_changed,rx_stopped,rx_resumed', 'adding, stopping and starting again are recorded too');
+select pg_temp.refused($$select public._log_prescription()$$, 'the log function cannot be called directly');
+reset role;
+
 -- ================================================================ anonymous
 set role anon;
 select pg_temp.refused('select 1 from public.profiles', 'anonymous visitors read nothing');

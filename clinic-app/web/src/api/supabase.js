@@ -61,6 +61,9 @@ export function createSupabaseApi(url, anonKey) {
     prescriptions: (pid) => must(sb.from('prescriptions').select('*').eq('patient_id', pid).order('scheduled_time')),
     addPrescription: (row) => must(sb.from('prescriptions').insert({ ...row, therapist_id: uid })),
     stopPrescription: (id) => must(sb.from('prescriptions').update({ active: false, ended_at: new Date().toISOString() }).eq('id', id)),
+    resumePrescription: (id) => must(sb.from('prescriptions').update({ active: true, ended_at: null }).eq('id', id)),
+    // time, sets, reps, hold_sec, extra_caution; the database logs the change in the patient record
+    updatePrescription: (id, fields) => must(sb.from('prescriptions').update(fields).eq('id', id)),
     painReports: (pid) => must(sb.from('pain_reports').select('*').eq('patient_id', pid).order('day', { ascending: false })),
     unseenPain: () => must(sb.from('pain_reports').select('patient_id').eq('seen', false)),
     markPainSeen: (id) => must(sb.from('pain_reports').update({ seen: true }).eq('id', id)),

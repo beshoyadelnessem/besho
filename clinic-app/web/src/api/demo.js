@@ -248,9 +248,24 @@ export function createDemoApi() {
     async addPrescription(row) {
       if (!canManage(row.patient_id)) fail('not_allowed');
       db.prescriptions.push({ id: nextId++, therapist_id: uid, active: true, created_at: now().toISOString(), ended_at: null, ...row });
+      event(row.patient_id, 'rx_added', { slug: row.exercise_slug, by: uid });
       return delay(null);
     },
-    async stopPrescription(id) { Object.assign(db.prescriptions.find((p) => p.id === id), { active: false, ended_at: now().toISOString() }); return delay(null); },
+    // same record entries as the database trigger in 0008_program_history.sql
+    async updatePrescription(id, fields) {
+      const p = db.prescriptions.find((x) => x.id === id);
+      if (!canManage(p.patient_id)) fail('not_allowed');
+      const changes = {};
+      for (const k of ['scheduled_time', 'sets', 'reps', 'hold_sec', 'extra_caution']) {
+        if (k in fields && fields[k] !== p[k]) changes[k] = [p[k], fields[k]];
+      }
+      if ('active' in fields && fields.active !== p.active) event(p.patient_id, fields.active ? 'rx_resumed' : 'rx_stopped', { slug: p.exercise_slug, by: uid });
+      Object.assign(p, fields);
+      if (Object.keys(changes).length) event(p.patient_id, 'rx_changed', { slug: p.exercise_slug, by: uid, changes });
+      return delay(null);
+    },
+    stopPrescription(id) { return api.updatePrescription(id, { active: false, ended_at: now().toISOString() }); },
+    resumePrescription(id) { return api.updatePrescription(id, { active: true, ended_at: null }); },
     painReports: (pid) => { guard(pid); return delay(db.pain.filter((x) => x.patient_id === pid).sort((a, b) => b.day.localeCompare(a.day))); },
     unseenPain: () => delay(db.pain.filter((x) => !x.seen && canRead(x.patient_id))),
     async markPainSeen(id) { db.pain.find((x) => x.id === id).seen = true; return delay(null); },

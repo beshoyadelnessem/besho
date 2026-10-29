@@ -211,3 +211,8 @@ h1, h2, .nm, b { text-wrap: balance; }
   .top > .row { margin-inline-start: auto; }
   .top h1 { font-size: 20px !important; }
 }
+.rx.editable { cursor: pointer; }
+.rx.editable:hover, .rx.editable:focus-visible { border-color: var(--teal); }
+.rx.open { border-color: var(--teal); box-shadow: 0 0 0 3px var(--teal-soft); }
+.edit-hint { display: inline-flex; align-items: center; gap: 4px; color: var(--teal); font-weight: 800; font-size: 13px; flex: none; }
+.rx, .session, .prow, .btn { -webkit-tap-highlight-color: transparent; }

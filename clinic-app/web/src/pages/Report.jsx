@@ -52,7 +52,7 @@ export default function Report({ id, library, go }) {
       </div>
       <div className="card stack"><b>{t('badgesEarned')}</b><div className="row">{badges.length ? badges.map((b) => <span key={b.kind} className="chip"><Icon name="award" size={14} /> {t('badge_' + b.kind)}</span>) : <span className="small muted">{t('none')}</span>}</div></div>
       <div className="card stack"><b>{t('record')}</b>
-        <ul className="timeline">{events.slice(0, 20).map((e) => <li key={e.id}><span className="small muted">{dateTime(e.created_at, lang)}</span><div>{eventText(e, t)}</div></li>)}</ul>
+        <ul className="timeline">{events.slice(0, 20).map((e) => <li key={e.id}><span className="small muted">{dateTime(e.created_at, lang)}</span><div>{eventText(e, t, { lang, byId })}</div></li>)}</ul>
       </div>
     </div>
   );

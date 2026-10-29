@@ -87,9 +87,54 @@ function BookSession({ patientId, staff, defaultTherapist, onDone }) {
   );
 }
 
-export function eventText(e, t) {
+// One line of the patient record. ctx = { lang, byId } names exercises and formats changes.
+export function eventText(e, t, ctx = {}) {
   if (e.kind === 'badge') return t('ev_badge', { badge: t('badge_' + e.data?.badge) });
-  return t('ev_' + e.kind);
+  if (!e.kind.startsWith('rx_')) return t('ev_' + e.kind);
+  const { lang = 'en', byId = {} } = ctx;
+  const name = exText(byId[e.data?.slug], lang).name || e.data?.slug;
+  if (e.kind !== 'rx_changed') return t('ev_' + e.kind, { name });
+  const arrow = lang === 'ar' ? ' ← ' : ' → ';
+  const show = (k, v) => (v === null || v === undefined || v === '' ? t('evCautionRemoved')
+    : k === 'scheduled_time' ? clock(String(v), lang) : k === 'hold_sec' ? holdLabel(v, lang) : k === 'extra_caution' ? `«${v}»` : v);
+  const label = { scheduled_time: t('time'), sets: t('sets'), reps: t('reps'), hold_sec: t('hold'), extra_caution: t('evCautionLbl') };
+  const changes = Object.entries(e.data?.changes || {}).map(([k, [a, b]]) =>
+    `${label[k] || k}: ${k === 'extra_caution' ? show(k, b) : `${show(k, a)}${arrow}${show(k, b)}`}`);
+  return t('ev_rx_changed', { name, changes: changes.join(lang === 'ar' ? '، ' : ', ') });
+}
+
+// Inline editor for one exercise of the program: time, dose and the therapist's own caution.
+function EditRx({ r, onSave, onCancel, onStop }) {
+  const { t } = useI18n();
+  const [f, setF] = useState({ scheduled_time: r.scheduled_time.slice(0, 5), sets: r.sets, reps: r.reps, hold_sec: r.hold_sec, extra_caution: r.extra_caution || '' });
+  const [error, setError] = useError();
+  const set = (k) => (e) => setF({ ...f, [k]: e.target.value });
+  const submit = (e) => {
+    e.preventDefault(); setError(null);
+    const next = { scheduled_time: f.scheduled_time, sets: +f.sets, reps: +f.reps, hold_sec: +f.hold_sec || 0, extra_caution: f.extra_caution.trim() || null };
+    const was = { ...r, scheduled_time: r.scheduled_time.slice(0, 5), extra_caution: r.extra_caution || null };
+    const changed = Object.fromEntries(Object.entries(next).filter(([k, v]) => v !== was[k]));
+    if (!Object.keys(changed).length) return setError(t('noChanges'));
+    onSave(changed).catch(setError);
+  };
+  return (
+    <form className="stack" onSubmit={submit} onClick={(e) => e.stopPropagation()}>
+      <div className="formgrid">
+        <label className="field">{t('time')}<input id={`ed-time-${r.id}`} type="time" value={f.scheduled_time} onChange={set('scheduled_time')} required /></label>
+        <label className="field">{t('sets')}<input id={`ed-sets-${r.id}`} type="number" min="1" max="10" value={f.sets} onChange={set('sets')} required /></label>
+        <label className="field">{t('reps')}<input id={`ed-reps-${r.id}`} type="number" min="1" max="100" value={f.reps} onChange={set('reps')} required /></label>
+        <label className="field">{t('holdSec')}<input id={`ed-hold-${r.id}`} type="number" min="0" max="600" value={f.hold_sec} onChange={set('hold_sec')} /></label>
+      </div>
+      <label className="field">{t('extraCaution')}<input id={`ed-caution-${r.id}`} value={f.extra_caution} onChange={set('extra_caution')} maxLength={300} placeholder={t('extraPh')} /></label>
+      <div className="small muted">{t('windowNote')}</div>
+      <ErrorBox error={error} />
+      <div className="row">
+        <button className="btn">{t('saveChanges')}</button>
+        <button type="button" className="btn ghost" onClick={onCancel}>{t('cancel')}</button>
+        <button type="button" className="btn danger" style={{ marginInlineStart: 'auto' }} onClick={onStop}>{t('stop')}</button>
+      </div>
+    </form>
+  );
 }
 
 // The patient's own login name and password, for a patient who forgot them, and deleting
@@ -145,6 +190,7 @@ export default function StaffPatient({ me, id, library, go }) {
   const { t, lang } = useI18n();
   const [d, setD] = useState(null);
   const [adding, setAdding] = useState(false);
+  const [editing, setEditing] = useState(null);   // prescription id open for editing
   const [tplName, setTplName] = useState('');
   const [tplPick, setTplPick] = useState('');
   const [pw, setPw] = useState('');
@@ -219,7 +265,7 @@ export default function StaffPatient({ me, id, library, go }) {
           <div className="card stack">
             <b>{t('record')}</b>
             {events.length === 0 ? <div className="small muted">{t('none')}</div> : (
-              <ul className="timeline">{events.map((e) => <li key={e.id} className={`ev-${e.kind}`}><span className="small muted">{dateTime(e.created_at, lang)}</span><div>{eventText(e, t)}</div></li>)}</ul>
+              <ul className="timeline">{events.map((e) => <li key={e.id} className={`ev-${e.kind}`}><span className="small muted">{dateTime(e.created_at, lang)}</span><div>{eventText(e, t, { lang, byId })}</div></li>)}</ul>
             )}
           </div>
         </div>
@@ -236,17 +282,29 @@ export default function StaffPatient({ me, id, library, go }) {
             </div>
           )}
           {rx.length === 0 && <div className="card muted">{t('noProgram')}</div>}
-          {rx.map((r) => (
-            <div key={r.id} className="card" style={{ opacity: r.active ? 1 : 0.55 }}>
-              <div className="row spread">
-                <div style={{ minWidth: 0 }}><div className="nm">{exText(byId[r.exercise_slug], lang).name}</div>
-                  <div className="small muted">{clock(r.scheduled_time, lang)} · {r.sets} × {r.reps}{r.hold_sec ? ` · ${t('hold')} ${holdLabel(r.hold_sec, lang)}` : ''} · {t('phaseN', { n: byId[r.exercise_slug]?.phase })}</div></div>
-                {r.active ? (canEdit && <button className="btn danger" onClick={() => act(() => api.stopPrescription(r.id), t('exStopped'))}>{t('stop')}</button>)
-                  : <span className="chip upcoming">{t('stopped')}</span>}
+          {canEdit && rx.some((r) => r.active) && <div className="small muted">{t('tapToEdit')}</div>}
+          {rx.map((r) => {
+            const open = editing === r.id;
+            const editable = canEdit && r.active && !open;
+            return (
+              <div key={r.id} className={`card stack rx${editable ? ' editable' : ''}${open ? ' open' : ''}`} style={{ opacity: r.active ? 1 : 0.55 }}
+                role={editable ? 'button' : undefined} tabIndex={editable ? 0 : undefined}
+                onClick={editable ? () => setEditing(r.id) : undefined}
+                onKeyDown={editable ? (e) => (e.key === 'Enter' || e.key === ' ') && (e.preventDefault(), setEditing(r.id)) : undefined}>
+                <div className="row spread" style={{ flexWrap: 'nowrap' }}>
+                  <div style={{ minWidth: 0 }}><div className="nm">{exText(byId[r.exercise_slug], lang).name}</div>
+                    <div className="small muted">{clock(r.scheduled_time, lang)} · {r.sets} × {r.reps}{r.hold_sec ? ` · ${t('hold')} ${holdLabel(r.hold_sec, lang)}` : ''} · {t('phaseN', { n: byId[r.exercise_slug]?.phase })}</div></div>
+                  {r.active ? (editable && <span className="edit-hint"><Icon name="edit" size={18} />{t('editEx')}</span>)
+                    : <div className="row" style={{ flexWrap: 'nowrap' }}><span className="chip upcoming">{t('stopped')}</span>
+                      {canEdit && <button className="btn ghost small-btn" onClick={() => act(() => api.resumePrescription(r.id), t('exResumed'))}>{t('resume')}</button>}</div>}
+                </div>
+                {r.extra_caution && !open && <div className="small" style={{ color: 'var(--red)', fontWeight: 800 }}><Icon name="alert" size={16} /> {r.extra_caution}</div>}
+                {open && <EditRx r={r} onCancel={() => setEditing(null)}
+                  onSave={(fields) => api.updatePrescription(r.id, fields).then(() => { setEditing(null); setMsg(t('exSaved')); return load(); })}
+                  onStop={() => act(() => api.stopPrescription(r.id), t('exStopped')).then(() => setEditing(null))} />}
               </div>
-              {r.extra_caution && <div className="small" style={{ color: 'var(--red)', fontWeight: 800 }}><Icon name="alert" size={16} /> {r.extra_caution}</div>}
-            </div>
-          ))}
+            );
+          })}
           {canEdit && rx.some((r) => r.active) && (
             <div className="card row">
               <input id="tpl-name" value={tplName} onChange={(e) => setTplName(e.target.value)} placeholder={t('templateName')} style={{ flex: 1 }} />
