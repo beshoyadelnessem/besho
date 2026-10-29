@@ -74,6 +74,14 @@ select pg_temp.refused('select public.complete_exercise(5)', 'cannot complete an
 select pg_temp.refused($$insert into public.completions (prescription_id, patient_id, day) values (3, auth.uid(), '2026-03-10')$$,
   'patient cannot insert completions directly');
 select pg_temp.refused($$update public.profiles set role = 'admin' where id = auth.uid()$$, 'patient cannot change own role');
+select pg_temp.refused($$update public.profiles set gender = 'female', birth_year = 1990, onboarded = true where id = auth.uid()$$,
+  'patient cannot finish setup before choosing own name and password', 'P0001');
+select pg_temp.refused($$update public.profiles set full_name = 'Somebody Else' where id = auth.uid()$$,
+  'patient cannot rename themselves directly', 'P0001');
+reset role;
+select public._store_password('00000000-0000-0000-0000-0000000000d1', 'Pass-one-1', true);  -- what create-user does on setup
+set role authenticated;
+select pg_temp.expect((select count(*) from public.patient_passwords) = 0, 'patient cannot read stored passwords, not even their own');
 update public.profiles set gender = 'female', birth_year = 1990, avatar = '{"hijab":true}', lang = 'ar', onboarded = true where id = auth.uid();
 select pg_temp.expect((select onboarded and lang = 'ar' from public.profiles where id = auth.uid()), 'patient saves first setup (gender, age, avatar, language)');
 update public.profiles set birth_year = 1985, large_text = true where id = auth.uid();
@@ -191,6 +199,45 @@ reset role;
 select pg_temp.expect((select count(*) from public.notification_outbox where patient_id = '00000000-0000-0000-0000-0000000000d2') = 1
   and exists (select 1 from public.patient_events where patient_id = '00000000-0000-0000-0000-0000000000d2' and kind = 'missed_2_days'),
   'encouragement is queued for the patient and logged in the record');
+
+-- ================================================================ names, passwords, sign-in
+update auth.users set email = 'p.' || right(id::text, 2) || '@patients.invalid';
+select public._store_password('00000000-0000-0000-0000-0000000000d3', 'Temp-pass-3', false);
+select pg_temp.refused($$insert into public.profiles (id, role, clinic_id, full_name) values
+  ('00000000-0000-0000-0000-0000000000a1', 'patient', '00000000-0000-0000-0000-0000000000c2', '  patient   TWO ')$$,
+  'patient names are unique (case and spaces do not count)', '23505');
+insert into auth.users (id) values ('00000000-0000-0000-0000-0000000000e1'), ('00000000-0000-0000-0000-0000000000e2');
+insert into public.profiles (id, role, clinic_id, full_name) values
+  ('00000000-0000-0000-0000-0000000000e1', 'patient', '00000000-0000-0000-0000-0000000000c1', 'أحمد سمير');
+select pg_temp.refused($$insert into public.profiles (id, role, clinic_id, full_name) values
+  ('00000000-0000-0000-0000-0000000000e2', 'patient', '00000000-0000-0000-0000-0000000000c2', 'احمد  سمير')$$,
+  'Arabic spelling variants count as the same name, across clinics', '23505');
+select pg_temp.expect(public.norm_name('نُور الهدى') = public.norm_name('نور الهدي'), 'diacritics and ى/ي are ignored');
+set role anon;
+select pg_temp.expect(public.login_email('patient three') = 'p.d3@patients.invalid', 'sign in with the chosen name');
+select pg_temp.expect(public.login_email('0100 000 0003') = 'p.d3@patients.invalid', 'sign in with the phone number');
+select pg_temp.expect(public.login_email('nobody here') is null, 'unknown name finds nothing');
+select pg_temp.refused('select * from public.patient_passwords', 'anonymous visitors cannot read passwords');
+select pg_temp.refused($$select public._store_password('00000000-0000-0000-0000-0000000000d3', 'x', true)$$, 'nobody but the server stores passwords');
+reset role;
+set role authenticated;
+select pg_temp.as_user('00000000-0000-0000-0000-0000000000b1');
+select pg_temp.expect((select password from public.patient_passwords where patient_id = '00000000-0000-0000-0000-0000000000d3') = 'Temp-pass-3',
+  'current therapist sees the patient''s password');
+select pg_temp.expect((select count(*) from public.patient_passwords) = 1, 'former therapist (p1 moved to b2) no longer sees that password');
+select pg_temp.as_user('00000000-0000-0000-0000-0000000000b2');
+select pg_temp.expect((select string_agg(patient_id::text, ',') from public.patient_passwords) = '00000000-0000-0000-0000-0000000000d1',
+  'the new therapist sees it, and no one else''s');
+select pg_temp.as_user('00000000-0000-0000-0000-0000000000a1');
+select pg_temp.expect((select count(*) from public.patient_passwords) = 2, 'clinic admin sees passwords of the clinic''s patients');
+select pg_temp.as_user('00000000-0000-0000-0000-0000000000a2');
+select pg_temp.expect((select count(*) from public.patient_passwords) = 0, 'another clinic''s admin does not');
+select pg_temp.as_user('00000000-0000-0000-0000-000000000001');
+select pg_temp.expect((select count(*) from public.patient_passwords) = 0, 'platform owner does not');
+reset role;
+select public._store_password('00000000-0000-0000-0000-0000000000d1', 'Reset-by-staff', false);
+select pg_temp.expect((select chosen_by_patient and set_by = 'staff' from public.patient_passwords where patient_id = '00000000-0000-0000-0000-0000000000d1'),
+  'a staff reset keeps the record that the patient chose credentials before');
 
 -- ================================================================ anonymous
 set role anon;

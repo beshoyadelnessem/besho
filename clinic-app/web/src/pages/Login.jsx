@@ -37,7 +37,7 @@ export default function Login({ setLang }) {
       ) : (
         <form className="card stack" onSubmit={submit}>
           <label className="field">{t('loginId')}
-            <input id="login-id" value={id} onChange={(e) => setId(e.target.value)} inputMode="email" autoComplete="username" required dir="ltr" />
+            <input id="login-id" value={id} onChange={(e) => setId(e.target.value)} autoComplete="username" required dir="auto" />
           </label>
           <label className="field">{t('password')}
             <input id="login-password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} autoComplete="current-password" required dir="ltr" />

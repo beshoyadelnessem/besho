@@ -5,6 +5,7 @@ import { Caution, DayStrip, ErrorBox, Figure, PainChart, lookOf, useError } from
 import { ChatThread } from './Chat.jsx';
 import { addDays, ageFrom, clock, dateLabel, dateTime, holdLabel, todayISO } from '../lib/format.js';
 import { phaseText } from '../lib/program.js';
+import { normName } from '../lib/names.js';
 
 function Prescribe({ patientId, library, onDone }) {
   const { t, lang } = useI18n();
@@ -88,6 +89,55 @@ function BookSession({ patientId, staff, defaultTherapist, onDone }) {
 export function eventText(e, t) {
   if (e.kind === 'badge') return t('ev_badge', { badge: t('badge_' + e.data?.badge) });
   return t('ev_' + e.kind);
+}
+
+// The patient's own login name and password, for a patient who forgot them, and deleting
+// the account. Only the current therapist and the clinic admin get here (and only they can
+// read the stored password).
+function LoginDetails({ p, onDelete }) {
+  const { t, lang } = useI18n();
+  const [cred, setCred] = useState(undefined);
+  const [shown, setShown] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const [confirming, setConfirming] = useState(false);
+  const [typed, setTyped] = useState('');
+  useEffect(() => { api.patientPassword(p.id).then(setCred).catch(() => setCred(null)); }, [p]);
+  const chosen = p.onboarded;   // the patient picked their own name and password
+  const copy = async () => {
+    try { await navigator.clipboard.writeText(cred.password); setCopied(true); setTimeout(() => setCopied(false), 1500); } catch { /* no clipboard */ }
+  };
+  return (
+    <div className="card stack">
+      <b>{t('loginDetails')}</b>
+      <div className="formgrid">
+        <div><div className="small muted">{t('loginName')}</div>
+          {chosen ? <b dir="auto">{p.full_name}</b> : <span className="small muted">{t('notChosen')}</span>}</div>
+        <div><div className="small muted">{t('phone')}</div><b dir="ltr">{p.phone}</b></div>
+        <div><div className="small muted">{t('passwordLbl')}</div>
+          {cred ? (
+            <div className="row" style={{ gap: 6 }}>
+              <code id="pt-password" className="secret" dir="ltr">{shown ? cred.password : '••••••••'}</code>
+              <button type="button" className="btn ghost small-btn" onClick={() => setShown(!shown)}>{shown ? t('hide') : t('show')}</button>
+              <button type="button" className="btn ghost small-btn" onClick={copy}>{copied ? t('copied') : t('copy')}</button>
+            </div>
+          ) : <span className="small muted">{cred === undefined ? t('loading') : '—'}</span>}
+          {cred && <div className="small muted">{t(cred.set_by === 'patient' ? 'setByPatient' : 'setByStaff')}{cred.updated_at ? ` · ${dateTime(cred.updated_at, lang)}` : ''}</div>}
+        </div>
+      </div>
+      {!confirming ? (
+        <div><button type="button" className="btn danger" onClick={() => setConfirming(true)}>{t('deleteAccount')}</button></div>
+      ) : (
+        <div className="stack delete-box">
+          <div className="caution-text">{t('deleteWarn', { name: p.full_name })}</div>
+          <label className="field">{t('deleteType')}<input id="del-confirm" value={typed} onChange={(e) => setTyped(e.target.value)} dir="auto" placeholder={p.full_name} /></label>
+          <div className="row">
+            <button type="button" className="btn danger" disabled={normName(typed) !== normName(p.full_name)} onClick={onDelete}>{t('deleteNow')}</button>
+            <button type="button" className="btn ghost" onClick={() => { setConfirming(false); setTyped(''); }}>{t('cancel')}</button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
 }
 
 export default function StaffPatient({ me, id, library, go }) {
@@ -220,6 +270,8 @@ export default function StaffPatient({ me, id, library, go }) {
             ))}
             {canEdit && <><b className="small">{t('bookSession')}</b><BookSession patientId={p.id} staff={therapists} defaultTherapist={cur?.therapist_id || me.id} onDone={(m) => act(async () => {}, m)} /></>}
           </div>
+
+          {canEdit && <LoginDetails p={p} onDelete={() => act(() => api.deletePatient(p.id)).then(() => go(''))} />}
 
           <div className="card stack">
             <b>{t('details')}</b>

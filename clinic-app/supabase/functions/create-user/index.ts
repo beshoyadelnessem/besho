@@ -3,6 +3,9 @@
 //   owner     -> create clinics (with their first admin); add admins/therapists to any clinic; reset staff passwords
 //   admin     -> add admins, therapists and patients to their own clinic; reset passwords in their clinic
 //   therapist -> add patients (assigned to themselves); reset their current patients' passwords
+//   admin/therapist -> delete the accounts of patients they manage
+//   patient   -> first setup only: choose their own name (unique, it is also their login) and password
+// Patient passwords are also stored for the patient's current therapist and clinic admin (0007).
 import { createClient } from "npm:@supabase/supabase-js@2.49.4";
 
 const cors = {
@@ -30,12 +33,52 @@ Deno.serve(async (req) => {
   if (!user) return fail("not_signed_in", 401);
 
   const db = createClient(url, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!, { auth: { persistSession: false } });
-  const { data: me } = await db.from("profiles").select("id, role, clinic_id").eq("id", user.id).single();
-  if (!me || me.role === "patient") return fail("not_allowed", 403);
+  const { data: me } = await db.from("profiles").select("id, role, clinic_id, onboarded").eq("id", user.id).single();
+  if (!me) return fail("not_allowed", 403);
 
   let body: Record<string, string>;
   try { body = await req.json(); } catch { return fail("bad_request"); }
   const password = String(body.password ?? "");
+  const storePassword = (id: string, byPatient: boolean) =>
+    db.rpc("_store_password", { p_patient: id, p_password: password, p_by_patient: byPatient });
+  // Unique-index violations from the profiles insert/update, as error codes for the app.
+  const dbError = (e: { code?: string; message: string }) =>
+    e.code === "23505" ? (/phone/.test(e.message) ? "phone_taken" : "name_taken") : e.message;
+
+  // ---------------------------------------------------------------- patient: first setup
+  if (me.role === "patient") {
+    if (body.action !== "patient_setup" || me.onboarded) return fail("not_allowed", 403);
+    const name = String(body.full_name ?? "").trim().replace(/\s+/g, " ");
+    if (!/^[\p{L}\p{N}][\p{L}\p{M}\p{N} ._-]{1,39}$/u.test(name) || !/\p{L}/u.test(name)) return fail("name_invalid");
+    if (password.length < 8) return fail("password_too_short");
+    const { error: nErr } = await db.from("profiles").update({ full_name: name }).eq("id", me.id);
+    if (nErr) return fail(dbError(nErr));
+    const { error: pErr } = await db.auth.admin.updateUserById(me.id, { password });
+    if (pErr) return fail(pErr.message);
+    const { error: sErr } = await storePassword(me.id, true);
+    return sErr ? fail(sErr.message) : json({ ok: true });
+  }
+
+  // ---------------------------------------------------------------- staff: may they manage this patient?
+  const managesPatient = async (id: string) => {
+    const { data: t } = await db.from("profiles").select("id, role, clinic_id").eq("id", id).maybeSingle();
+    if (!t || t.role !== "patient") return null;
+    if (me.role === "admin") return t.clinic_id === me.clinic_id ? t : null;
+    if (me.role !== "therapist") return null;
+    const { data: a } = await db.from("assignments").select("id")
+      .eq("patient_id", t.id).eq("therapist_id", me.id).eq("active", true).maybeSingle();
+    return a ? t : null;
+  };
+
+  // ---------------------------------------------------------------- delete a patient's account
+  if (body.action === "delete_patient") {
+    const t = await managesPatient(String(body.user_id ?? ""));
+    if (!t) return fail("not_allowed", 403);
+    // Deleting the sign-in account removes the profile and all of the patient's records.
+    const { error } = await db.auth.admin.deleteUser(t.id);
+    return error ? fail(error.message) : json({ ok: true });
+  }
+
   if (password.length < 8) return fail("password_too_short");
 
   // ---------------------------------------------------------------- reset password
@@ -52,7 +95,12 @@ Deno.serve(async (req) => {
     }
     if (!allowed) return fail("not_allowed", 403);
     const { error } = await db.auth.admin.updateUserById(t.id, { password });
-    return error ? fail(error.message) : json({ ok: true });
+    if (error) return fail(error.message);
+    if (t.role === "patient") {
+      const { error: sErr } = await storePassword(t.id, false);
+      if (sErr) return fail(sErr.message);
+    }
+    return json({ ok: true });
   }
 
   const newAccount = async (email: string, fields: Record<string, unknown>) => {
@@ -61,11 +109,11 @@ Deno.serve(async (req) => {
       return { error: /already|registered|exists/i.test(error?.message ?? "") ? "already_registered" : (error?.message ?? "failed") };
     }
     const { error: pErr } = await db.from("profiles").insert({ id: data.user.id, created_by: me.id, ...fields });
-    if (pErr) { await db.auth.admin.deleteUser(data.user.id); return { error: pErr.message }; }
+    if (pErr) { await db.auth.admin.deleteUser(data.user.id); return { error: dbError(pErr) }; }
     return { id: data.user.id };
   };
   const fullName = String(body.full_name ?? "").trim();
-  if (fullName.length < 2 || fullName.length > 80) return fail("name_required");
+  const nameOk = fullName.length >= 2 && fullName.length <= 80;
   const lang = LANGS.includes(body.lang) ? body.lang : "en";
   const email = String(body.email ?? "").trim().toLowerCase();
   const emailOk = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
@@ -75,6 +123,7 @@ Deno.serve(async (req) => {
     if (me.role !== "owner") return fail("not_allowed", 403);
     const clinicName = String(body.clinic_name ?? "").trim();
     if (clinicName.length < 2) return fail("clinic_name_required");
+    if (!nameOk) return fail("name_required");
     if (!emailOk) return fail("email_invalid");
     const tz = String(body.timezone ?? "Africa/Cairo");
     try { new Intl.DateTimeFormat("en", { timeZone: tz }); } catch { return fail("timezone_invalid"); }
@@ -95,6 +144,7 @@ Deno.serve(async (req) => {
   if (!clinic) return fail("clinic_required");
 
   if (role !== "patient") {
+    if (!nameOk) return fail("name_required");
     if (!emailOk) return fail("email_invalid");
     const r = await newAccount(email, { role, clinic_id: clinicId, full_name: fullName, lang, onboarded: true });
     return r.error ? fail(r.error) : json({ id: r.id });
@@ -108,10 +158,14 @@ Deno.serve(async (req) => {
   if (!th) return fail("therapist_required");
   const today = new Intl.DateTimeFormat("en-CA", { timeZone: clinic.timezone }).format(new Date());
   const start = /^\d{4}-\d{2}-\d{2}$/.test(body.treatment_start ?? "") ? body.treatment_start : today;
-  const r = await newAccount(`${phone}@${PATIENT_EMAIL_DOMAIN}`,
-    { role: "patient", clinic_id: clinicId, full_name: fullName, phone, lang, treatment_start: start });
+  // The patient chooses their real name at the first sign-in; until then the phone stands in.
+  // The sign-in address is random so it reveals nothing (login_email() maps name/phone to it).
+  const r = await newAccount(`p${crypto.randomUUID().replaceAll("-", "")}@${PATIENT_EMAIL_DOMAIN}`,
+    { role: "patient", clinic_id: clinicId, full_name: nameOk ? fullName : phone, phone, lang, treatment_start: start });
   if (r.error) return fail(r.error);
   const { error: aErr } = await db.from("assignments").insert({ patient_id: r.id, therapist_id: therapistId });
   if (aErr) { await db.auth.admin.deleteUser(r.id!); return fail(aErr.message); }
+  const { error: sErr } = await storePassword(r.id!, false);
+  if (sErr) { await db.auth.admin.deleteUser(r.id!); return fail(sErr.message); }
   return json({ id: r.id });
 });

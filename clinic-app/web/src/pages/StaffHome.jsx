@@ -12,14 +12,14 @@ function AddPatient({ me, staff, onDone }) {
   const set = (k) => (e) => setF({ ...f, [k]: e.target.value });
   const submit = async (e) => {
     e.preventDefault(); setBusy(true); setError(null);
-    try { await api.createUser({ role: 'patient', ...f }); onDone(t('patientAdded', { name: f.full_name })); }
+    try { await api.createUser({ role: 'patient', ...f }); onDone(t('patientAdded', { name: f.full_name || f.phone })); }
     catch (err) { setError(err); setBusy(false); }
   };
   return (
     <form className="card stack" onSubmit={submit}>
       <b>{t('newPatient').replace('+ ', '')}</b>
       <div className="formgrid">
-        <label className="field">{t('name')}<input id="np-name" value={f.full_name} onChange={set('full_name')} required /></label>
+        <label className="field">{t('nameOptional')}<input id="np-name" value={f.full_name} onChange={set('full_name')} dir="auto" /></label>
         <label className="field">{t('phone')}<input id="np-phone" value={f.phone} onChange={set('phone')} inputMode="tel" dir="ltr" required /></label>
         <label className="field">{t('tempPass')}<input id="np-pass" value={f.password} onChange={set('password')} dir="ltr" minLength={8} required /></label>
         <label className="field">{t('startDate')}<input id="np-start" type="date" value={f.treatment_start} onChange={set('treatment_start')} required /></label>

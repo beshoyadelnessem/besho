@@ -1,13 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
 
-const PATIENT_EMAIL_DOMAIN = import.meta.env.VITE_PATIENT_EMAIL_DOMAIN || 'patients.invalid';
-
-// Patients sign in with their mobile number; it maps to a synthetic e-mail address.
-export function loginEmail(id) {
-  const digits = id.replace(/\D/g, '');
-  return id.includes('@') ? id.trim().toLowerCase() : `${digits}@${PATIENT_EMAIL_DOMAIN}`;
-}
-
 const must = async (p) => { const { data, error } = await p; if (error) throw new Error(error.message); return data; };
 
 export function createSupabaseApi(url, anonKey) {
@@ -18,8 +10,13 @@ export function createSupabaseApi(url, anonKey) {
     demo: false,
     async session() { const { data } = await sb.auth.getSession(); uid = data.session?.user.id ?? null; return uid; },
     onAuth(cb) { return sb.auth.onAuthStateChange((_e, s) => { uid = s?.user.id ?? null; cb(uid); }).data.subscription; },
+    // Staff sign in with their e-mail; patients with their chosen name or their phone number,
+    // which the database maps to the account's sign-in address.
     async signIn(id, password) {
-      const { error } = await sb.auth.signInWithPassword({ email: loginEmail(id), password });
+      const login = id.trim();
+      const email = login.includes('@') ? login.toLowerCase() : await must(sb.rpc('login_email', { p_login: login }));
+      if (!email) throw new Error('Invalid login credentials');
+      const { error } = await sb.auth.signInWithPassword({ email, password });
       if (error) throw new Error(error.message);
     },
     signOut: () => sb.auth.signOut(),
@@ -102,6 +99,9 @@ export function createSupabaseApi(url, anonKey) {
       return data;
     },
     resetPassword: (userId, password) => api.createUser({ action: 'reset_password', user_id: userId, password }),
+    patientSetup: (fullName, password) => api.createUser({ action: 'patient_setup', full_name: fullName, password }),
+    deletePatient: (userId) => api.createUser({ action: 'delete_patient', user_id: userId }),
+    patientPassword: (pid) => must(sb.from('patient_passwords').select('password, set_by, updated_at').eq('patient_id', pid).maybeSingle()),
 
     // ---- push
     async savePush(sub) {

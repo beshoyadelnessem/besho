@@ -159,3 +159,7 @@ html.large ol.steps li { font-size: 17px; }
 }
 .report .chart { max-width: 720px; }
 .steps li.reading, .notice.reading { background: var(--teal-soft); border-radius: 8px; outline: 2px solid var(--teal); outline-offset: 2px; }
+code.secret { font-size: 15px; font-weight: 700; background: var(--surface-2); border: 1px solid var(--line); border-radius: 8px; padding: 4px 10px; letter-spacing: .5px; }
+.btn.small-btn { padding: 4px 10px; min-height: 0; font-size: 13px; }
+.delete-box { border: 1.5px solid var(--red-line); background: var(--red-bg); border-radius: 12px; padding: 12px; }
+.caution-text { color: var(--red); font-weight: 700; }

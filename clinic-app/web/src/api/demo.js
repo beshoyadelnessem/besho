@@ -2,6 +2,7 @@
 // configured. It mirrors the SQL rules (time windows, streak, restore, badges, chat,
 // clinic isolation) so every screen can be tried without an account. Data resets on reload.
 import LIBRARY from './demo-exercises.json';
+import { cleanName, normName, validName } from '../lib/names.js';
 
 const pad = (n) => String(n).padStart(2, '0');
 const isoDay = (d) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
@@ -47,7 +48,13 @@ export function createDemoApi() {
     ],
     prescriptions: [], completions: [], pain: [], scores: [], restores: [], badges: [], events: [], messages: [],
     templates: [], appointments: [],
+    // what the clinic sees in the patient's details (0007_patient_login.sql)
+    passwords: {
+      p1: { password: 'Ahmed-2026', set_by: 'patient' }, p2: { password: 'Nour.1990', set_by: 'patient' },
+      p3: { password: 'Karim-1234', set_by: 'staff' }, p4: { password: 'Yousef-11', set_by: 'patient' },
+    },
   };
+  const nameTaken = (name, except) => db.profiles.some((x) => x.role === 'patient' && x.id !== except && normName(x.full_name) === normName(name));
   let nextId = 100;
   const rx = (patient_id, slug, time, extra = null, therapist = 't1') => {
     const e = LIBRARY.find((x) => x.slug === slug);
@@ -290,15 +297,42 @@ export function createDemoApi() {
     },
     async createUser(body) {
       if (body.password?.length < 8) fail('password_too_short');
+      const patient = body.role === 'patient';
+      const fullName = patient ? (cleanName(body.full_name) || String(body.phone || '').replace(/\D/g, '')) : body.full_name;
+      if (patient && nameTaken(fullName)) fail('name_taken');
+      if (patient && db.profiles.some((x) => x.phone && x.phone === String(body.phone).replace(/\D/g, ''))) fail('phone_taken');
       const id = 'u' + nextId++;
       const clinic = me().role === 'owner' ? body.clinic_id : me().clinic_id;
-      db.profiles.push({ id, role: body.role, clinic_id: clinic, full_name: body.full_name, phone: body.phone || null, email: body.email || null,
+      if (patient) db.passwords[id] = { password: body.password, set_by: 'staff', updated_at: now().toISOString() };
+      db.profiles.push({ id, role: body.role, clinic_id: clinic, full_name: fullName, phone: body.phone || null, email: body.email || null,
         onboarded: body.role !== 'patient', notifications_enabled: true, chat_enabled: false, large_text: false, avatar: {}, lang: body.lang || 'en',
         treatment_start: body.role === 'patient' ? (body.treatment_start || today()) : null });
       if (body.role === 'patient') db.assignments.push({ id: nextId++, patient_id: id, therapist_id: me().role === 'therapist' ? uid : body.therapist_id, active: true, started_at: today() });
       return delay({ id });
     },
-    resetPassword: () => delay({ ok: true }),
+    async resetPassword(userId, password) {
+      if (password?.length < 8) fail('password_too_short');
+      if (db.passwords[userId]) db.passwords[userId] = { password, set_by: 'staff', updated_at: now().toISOString() };
+      return delay({ ok: true });
+    },
+    async patientSetup(fullName, password) {
+      const name = cleanName(fullName);
+      if (!validName(name)) fail('name_invalid');
+      if (password?.length < 8) fail('password_too_short');
+      if (nameTaken(name, uid)) fail('name_taken');
+      me().full_name = name;
+      db.passwords[uid] = { password, set_by: 'patient', updated_at: now().toISOString() };
+      return delay({ ok: true });
+    },
+    patientPassword: (pid) => delay(db.passwords[pid] ?? null),
+    async deletePatient(pid) {
+      db.profiles = db.profiles.filter((x) => x.id !== pid);
+      for (const k of ['assignments', 'prescriptions', 'completions', 'pain', 'scores', 'restores', 'badges', 'events', 'messages', 'appointments']) {
+        db[k] = db[k].filter((x) => x.patient_id !== pid);
+      }
+      delete db.passwords[pid];
+      return delay({ ok: true });
+    },
     savePush: () => delay(null), dropPush: () => delay(null), vapidKey: null,
   };
   return api;
