@@ -10,7 +10,9 @@ export function audioFor(slug, lang, gender) {
   const voices = manifest[slug]?.[l];
   if (!voices) return null;
   const v = voices[gender] || voices.f || voices.m;
-  return v && { lang: l, src: v.src, starts: v.starts };
+  // A single-file build (the shareable demo page) carries the tracks inline.
+  const inline = typeof window !== 'undefined' ? window.__AUDIO_INLINE__?.[v?.src] : null;
+  return v && { lang: l, src: inline || v.src, starts: v.starts };
 }
 
 // Recorded parts are name, caution, steps..., tip. The read-aloud parts on screen have
