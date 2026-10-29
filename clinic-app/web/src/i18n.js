@@ -81,6 +81,12 @@ const en = {
   reportTitle: 'Home-exercise report', generated: 'Generated {date}', exercisesActive: 'Active exercises', badgesEarned: 'Badges earned',
   ev_missed_2_days: 'Missed two days in a row – encouragement sent', ev_badge: 'Earned badge: {badge}', ev_restore: 'Used the weekly restore',
   ev_pain_report: 'Reported pain – rest day', ev_transfer: 'Moved to another therapist', ev_chat_on: 'Messages opened', ev_chat_off: 'Messages closed',
+  clinicActive: 'Active', clinicSuspended: 'Suspended', suspendClinic: 'Suspend clinic', reactivateClinic: 'Turn back on',
+  suspendNote: 'While suspended, nobody in this clinic (staff or patients) can sign in. All data is kept.',
+  deleteClinic: 'Delete clinic', deleteClinicWarn: 'This permanently deletes {name} with all its staff, patients and their records. It cannot be undone.',
+  deleteClinicType: 'Type the clinic name to confirm', clinicSuspendedMsg: '{name} is suspended', clinicReactivated: '{name} is active again',
+  clinicDeleted: '{name} was deleted', err_clinic_suspended: 'This clinic’s account is paused. Please contact the clinic.',
+  err_confirm_name_mismatch: 'The name does not match', staffCount: '{n} staff',
   ev_rx_added: 'Exercise added: {name}', ev_rx_stopped: 'Exercise stopped: {name}', ev_rx_resumed: 'Exercise started again: {name}',
   ev_rx_changed: 'Exercise changed: {name} – {changes}', evCautionRemoved: 'removed', evCautionLbl: 'own caution',
   editEx: 'Edit', saveChanges: 'Save changes', exSaved: 'Changes saved. The patient sees them right away.', resume: 'Start again',
@@ -179,6 +185,12 @@ const ar = {
   reportTitle: 'تقرير تمارين البيت', generated: 'اتعمل {date}', exercisesActive: 'التمارين الحالية', badgesEarned: 'الشارات',
   ev_missed_2_days: 'فوّت يومين ورا بعض – اتبعتله رسالة تشجيع', ev_badge: 'كسب شارة: {badge}', ev_restore: 'استخدم استرجاع الأسبوع',
   ev_pain_report: 'بلّغ عن ألم – يوم راحة', ev_transfer: 'اتنقل لأخصائي تاني', ev_chat_on: 'الرسايل اتفتحت', ev_chat_off: 'الرسايل اتقفلت',
+  clinicActive: 'شغّالة', clinicSuspended: 'موقوفة', suspendClinic: 'إيقاف العيادة', reactivateClinic: 'شغّلها تاني',
+  suspendNote: 'وهي موقوفة، محدش في العيادة يقدر يدخل، لا دكاترة ولا مرضى. البيانات كلها بتفضل محفوظة.',
+  deleteClinic: 'حذف العيادة', deleteClinicWarn: 'ده هيحذف {name} نهائي، ومعاها كل الدكاترة والمرضى وسجلاتهم. مفيش رجوع.',
+  deleteClinicType: 'اكتب اسم العيادة عشان تأكد', clinicSuspendedMsg: '{name} اتوقفت', clinicReactivated: '{name} اشتغلت تاني',
+  clinicDeleted: '{name} اتحذفت', err_clinic_suspended: 'حساب العيادة موقوف دلوقتي. كلّم العيادة.',
+  err_confirm_name_mismatch: 'الاسم مش مطابق', staffCount: '{n} من الفريق',
   ev_rx_added: 'اتضاف تمرين: {name}', ev_rx_stopped: 'اتوقف تمرين: {name}', ev_rx_resumed: 'اتشغّل تاني: {name}',
   ev_rx_changed: 'اتعدّل {name}: {changes}', evCautionRemoved: 'اتشال', evCautionLbl: 'التنبيه',
   editEx: 'تعديل', saveChanges: 'احفظ التعديل', exSaved: 'اتحفظ التعديل، والمريض هيشوفه على طول.', resume: 'شغّله تاني',
@@ -277,6 +289,12 @@ const de = {
   reportTitle: 'Bericht Heimübungen', generated: 'Erstellt am {date}', exercisesActive: 'Aktuelle Übungen', badgesEarned: 'Abzeichen',
   ev_missed_2_days: 'Zwei Tage in Folge verpasst – Motivationsnachricht gesendet', ev_badge: 'Abzeichen erhalten: {badge}', ev_restore: 'Wöchentliche Wiederherstellung genutzt',
   ev_pain_report: 'Schmerz gemeldet – Ruhetag', ev_transfer: 'An andere/n Therapeut/in übergeben', ev_chat_on: 'Nachrichten geöffnet', ev_chat_off: 'Nachrichten geschlossen',
+  clinicActive: 'Aktiv', clinicSuspended: 'Gesperrt', suspendClinic: 'Praxis sperren', reactivateClinic: 'Wieder freischalten',
+  suspendNote: 'Solange die Praxis gesperrt ist, kann sich dort niemand anmelden (Personal und Patienten). Alle Daten bleiben erhalten.',
+  deleteClinic: 'Praxis löschen', deleteClinicWarn: 'Damit wird {name} mit allen Mitarbeitenden, Patienten und deren Daten endgültig gelöscht. Das kann nicht rückgängig gemacht werden.',
+  deleteClinicType: 'Zur Bestätigung den Praxisnamen eingeben', clinicSuspendedMsg: '{name} ist gesperrt', clinicReactivated: '{name} ist wieder aktiv',
+  clinicDeleted: '{name} wurde gelöscht', err_clinic_suspended: 'Das Konto dieser Praxis ist pausiert. Bitte wenden Sie sich an die Praxis.',
+  err_confirm_name_mismatch: 'Der Name stimmt nicht überein', staffCount: '{n} Mitarbeitende',
   ev_rx_added: 'Übung hinzugefügt: {name}', ev_rx_stopped: 'Übung beendet: {name}', ev_rx_resumed: 'Übung wieder aktiv: {name}',
   ev_rx_changed: 'Übung geändert: {name} – {changes}', evCautionRemoved: 'entfernt', evCautionLbl: 'eigener Hinweis',
   editEx: 'Bearbeiten', saveChanges: 'Änderungen speichern', exSaved: 'Gespeichert. Der Patient sieht die Änderung sofort.', resume: 'Wieder starten',
@@ -316,6 +334,7 @@ export function translate(lang, key, vars) {
 export function errorKey(message = '') {
   const m = String(message);
   if (/Invalid login credentials/i.test(m)) return 'err_invalid_login';
+  if (/banned/i.test(m)) return 'err_clinic_suspended';
   if (/outside the allowed time window/i.test(m)) return 'err_window';
   if (/nothing to restore/i.test(m)) return 'err_nothing_to_restore';
   if (/streak_restores_patient_id_cycle|duplicate key.*restore/i.test(m)) return 'err_restore_used';

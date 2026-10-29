@@ -3,6 +3,13 @@ import { api } from '../api/index.js';
 import { useI18n } from '../i18n.js';
 import { ErrorBox, LangSwitch, Logo, useError } from '../components/ui.jsx';
 
+// Demo sign-in buttons; a demo page made for one role shows only that role's.
+const DEMO_USERS = [
+  { id: 'p1', role: 'patient', label: 'demoPatient' }, { id: 'p3', role: 'patient', label: 'demoNewPatient' },
+  { id: 't1', role: 'therapist', label: 'demoTherapist' }, { id: 'admin', role: 'admin', label: 'demoAdmin' },
+  { id: 'owner', role: 'owner', label: 'demoOwner' },
+];
+
 export default function Login({ setLang }) {
   const { t, lang } = useI18n();
   const [id, setId] = useState('');
@@ -28,11 +35,11 @@ export default function Login({ setLang }) {
         <div className="card stack">
           <h2 style={{ fontSize: 18 }}>{t('demoTitle')}</h2>
           <p className="muted small" style={{ margin: 0 }}>{t('demoBody')}</p>
-          <button className="btn block" onClick={() => api.signIn('p1')}>{t('demoPatient')}</button>
-          <button className="btn ghost block" onClick={() => api.signIn('p3')}>{t('demoNewPatient')}</button>
-          <button className="btn ghost block" onClick={() => api.signIn('t1')}>{t('demoTherapist')}</button>
-          <button className="btn ghost block" onClick={() => api.signIn('admin')}>{t('demoAdmin')}</button>
-          <button className="btn ghost block" onClick={() => api.signIn('owner')}>{t('demoOwner')}</button>
+          {DEMO_USERS.filter((u) => !api.demoRole || u.role === api.demoRole).map((u, i) => (
+            <button key={u.id} className={`btn ${i ? 'ghost ' : ''}block`}
+              onClick={() => { setError(null); api.signIn(u.id).catch(setError); }}>{t(u.label)}</button>
+          ))}
+          <ErrorBox error={error} />
         </div>
       ) : (
         <form className="card stack" onSubmit={submit}>

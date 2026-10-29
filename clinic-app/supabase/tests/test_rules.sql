@@ -260,4 +260,16 @@ reset role;
 set role anon;
 select pg_temp.refused('select 1 from public.profiles', 'anonymous visitors read nothing');
 reset role;
+-- ================================================================ platform owner deletes a clinic
+-- What create-user's delete_clinic does with the service role: clear who-created-whom links,
+-- delete the patients' accounts, then the staff accounts, then the clinic.
+update public.profiles set created_by = null where clinic_id = '00000000-0000-0000-0000-0000000000c2';
+delete from auth.users where id in (select id from public.profiles where clinic_id = '00000000-0000-0000-0000-0000000000c2' and role = 'patient');
+delete from auth.users where id in (select id from public.profiles where clinic_id = '00000000-0000-0000-0000-0000000000c2');
+delete from public.clinics where id = '00000000-0000-0000-0000-0000000000c2';
+select pg_temp.expect(not exists (select 1 from public.profiles where clinic_id = '00000000-0000-0000-0000-0000000000c2')
+  and not exists (select 1 from public.prescriptions where patient_id = '00000000-0000-0000-0000-0000000000d4')
+  and (select count(*) from public.clinics) = 1, 'deleting a clinic removes its people and all their records');
+select pg_temp.expect((select count(*) from public.profiles where clinic_id = '00000000-0000-0000-0000-0000000000c1' and role = 'patient') = 4,
+  'the other clinic is untouched');
 \echo ALL TESTS PASSED

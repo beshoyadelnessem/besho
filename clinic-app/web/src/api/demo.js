@@ -25,7 +25,7 @@ export function createDemoApi() {
       { id: C2, name: 'Physio Berlin Mitte', timezone: 'Europe/Berlin', active: true },
     ],
     profiles: [
-      { id: 'owner', role: 'owner', clinic_id: null, full_name: 'Platform Owner', lang: 'en' },
+      { id: 'owner', role: 'owner', clinic_id: null, full_name: 'بيشوي', lang: 'ar' },
       { id: 'admin', role: 'admin', clinic_id: C1, full_name: 'د. سارة فؤاد', lang: 'ar' },
       { id: 't1', role: 'therapist', clinic_id: C1, full_name: 'د. محمد علي', lang: 'ar' },
       { id: 't2', role: 'therapist', clinic_id: C1, full_name: 'د. منى حسن', lang: 'ar' },
@@ -106,7 +106,10 @@ export function createDemoApi() {
     { id: nextId++, clinic_id: C1, patient_id: 'p2', therapist_id: 't1', starts_at: inDays(1, 17), duration_min: 30, status: 'booked', note: 'تقييم للمرحلة 2' },
   );
 
-  let uid = null;
+  // A demo page made for one role (tools/single-file.py --role) opens signed in as that role.
+  const ROLE_USER = { patient: 'p1', therapist: 't1', admin: 'admin', owner: 'owner' };
+  const lockedRole = typeof window !== 'undefined' ? window.__DEMO_ROLE__ : undefined;
+  let uid = ROLE_USER[lockedRole] ?? null;
   const me = () => db.profiles.find((p) => p.id === uid);
   const prof = (id) => db.profiles.find((p) => p.id === id);
   const listeners = new Set();
@@ -159,9 +162,14 @@ export function createDemoApi() {
 
   const api = {
     demo: true,
+    demoRole: lockedRole || null,
     async session() { return uid; },
     onAuth(cb) { listeners.add(cb); return { unsubscribe: () => listeners.delete(cb) }; },
-    async signIn(id) { uid = id; listeners.forEach((l) => l(uid)); },
+    async signIn(id) {
+      const p = db.profiles.find((x) => x.id === id);
+      if (p?.clinic_id && db.clinics.find((c) => c.id === p.clinic_id)?.active === false) fail('clinic_suspended');
+      uid = id; listeners.forEach((l) => l(uid));
+    },
     async signOut() { uid = null; listeners.forEach((l) => l(uid)); },
     me: () => delay(me()),
     async updateMe(fields) {
@@ -309,6 +317,20 @@ export function createDemoApi() {
       db.clinics.push({ id, name: body.clinic_name, timezone: body.timezone || 'Africa/Cairo', active: true });
       db.profiles.push({ id: 'u' + nextId++, role: 'admin', clinic_id: id, full_name: body.full_name, email: body.email, lang: body.lang || 'en' });
       return delay({ clinic_id: id });
+    },
+    async setClinicActive(clinicId, active) {
+      if (me().role !== 'owner') fail('not_allowed');
+      db.clinics.find((c) => c.id === clinicId).active = active;
+      return delay({ ok: true });
+    },
+    async deleteClinic(clinicId, confirmName) {
+      if (me().role !== 'owner') fail('not_allowed');
+      const c = db.clinics.find((x) => x.id === clinicId);
+      if (confirmName.trim() !== c.name) fail('confirm_name_mismatch');
+      for (const p of db.profiles.filter((x) => x.clinic_id === clinicId && x.role === 'patient')) await api.deletePatient(p.id);
+      db.profiles = db.profiles.filter((x) => x.clinic_id !== clinicId);
+      db.clinics = db.clinics.filter((x) => x.id !== clinicId);
+      return delay({ ok: true });
     },
     async createUser(body) {
       if (body.password?.length < 8) fail('password_too_short');

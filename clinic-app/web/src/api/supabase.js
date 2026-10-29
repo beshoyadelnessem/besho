@@ -91,6 +91,8 @@ export function createSupabaseApi(url, anonKey) {
     // ---- owner
     clinics: () => must(sb.from('clinics').select('*').order('name')),
     createClinic: (body) => api.createUser({ action: 'create_clinic', ...body }),
+    setClinicActive: (clinicId, active) => api.createUser({ action: 'set_clinic_active', clinic_id: clinicId, active: String(active) }),
+    deleteClinic: (clinicId, confirmName) => api.createUser({ action: 'delete_clinic', clinic_id: clinicId, confirm_name: confirmName }),
 
     async createUser(body) {
       const { data, error } = await sb.functions.invoke('create-user', { body });

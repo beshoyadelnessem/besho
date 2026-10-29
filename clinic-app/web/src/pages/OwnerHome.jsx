@@ -30,6 +30,37 @@ function NewClinic({ onDone }) {
   );
 }
 
+// Suspend / reactivate / delete one clinic. Deleting needs the clinic's name typed in.
+function ClinicActions({ c, onDone }) {
+  const { t } = useI18n();
+  const [confirming, setConfirming] = useState(false);
+  const [typed, setTyped] = useState('');
+  const [error, setError] = useError();
+  const run = async (fn, msg) => { setError(null); try { await fn(); onDone(msg); } catch (e) { setError(e); } };
+  return (
+    <div className="stack">
+      <div className="row">
+        {c.active !== false
+          ? <button type="button" className="btn ghost" onClick={() => run(() => api.setClinicActive(c.id, false), t('clinicSuspendedMsg', { name: c.name }))}>{t('suspendClinic')}</button>
+          : <button type="button" className="btn" onClick={() => run(() => api.setClinicActive(c.id, true), t('clinicReactivated', { name: c.name }))}>{t('reactivateClinic')}</button>}
+        {!confirming && <button type="button" className="btn danger" onClick={() => setConfirming(true)}>{t('deleteClinic')}</button>}
+      </div>
+      {c.active !== false && <div className="small muted">{t('suspendNote')}</div>}
+      {confirming && (
+        <div className="stack delete-box">
+          <div className="caution-text">{t('deleteClinicWarn', { name: c.name })}</div>
+          <label className="field">{t('deleteClinicType')}<input id={`del-clinic-${c.id}`} value={typed} onChange={(e) => setTyped(e.target.value)} placeholder={c.name} dir="auto" /></label>
+          <div className="row">
+            <button type="button" className="btn danger" disabled={typed.trim() !== c.name} onClick={() => run(() => api.deleteClinic(c.id, typed), t('clinicDeleted', { name: c.name }))}>{t('deleteNow')}</button>
+            <button type="button" className="btn ghost" onClick={() => { setConfirming(false); setTyped(''); }}>{t('cancel')}</button>
+          </div>
+        </div>
+      )}
+      <ErrorBox error={error} />
+    </div>
+  );
+}
+
 // Platform owner: manages clinics and their staff, never patient data.
 export default function OwnerHome({ me, setLang }) {
   const { t, lang } = useI18n();
@@ -61,11 +92,13 @@ export default function OwnerHome({ me, setLang }) {
           {clinics.map((c) => {
             const team = staff.filter((s) => s.clinic_id === c.id);
             return (
-              <div key={c.id} className="card stack">
-                <div className="row spread"><div><b>{c.name}</b><div className="small muted">{c.timezone}</div></div>
+              <div key={c.id} className="card stack" style={{ opacity: c.active === false ? 0.75 : 1 }}>
+                <div className="row spread"><div><b>{c.name}</b>{' '}<span className={`chip ${c.active === false ? 'closed' : 'open'}`}>{t(c.active === false ? 'clinicSuspended' : 'clinicActive')}</span>
+                  <div className="small muted">{c.timezone} · {t('staffCount', { n: team.length })}</div></div>
                   {adding !== c.id && <button className="btn ghost" onClick={() => setAdding(c.id)}>+ {t('addStaffTo')}</button>}</div>
                 {adding === c.id && <AddStaff clinicId={c.id} onDone={done} />}
                 <div className="row">{team.map((s) => <span key={s.id} className="chip">{s.full_name} · {t(s.role)}</span>)}</div>
+                <ClinicActions c={c} onDone={done} />
               </div>
             );
           })}

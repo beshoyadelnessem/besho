@@ -1,6 +1,7 @@
 // Creates clinics and accounts, and resets passwords. Runs with the service role, after
 // checking what the signed-in caller may do:
-//   owner     -> create clinics (with their first admin); add admins/therapists to any clinic; reset staff passwords
+//   owner     -> create clinics (with their first admin); add admins/therapists to any clinic; reset staff passwords;
+//                suspend / reactivate a clinic (its people cannot sign in meanwhile); delete a clinic with everyone in it
 //   admin     -> add admins, therapists and patients to their own clinic; reset passwords in their clinic
 //   therapist -> add patients (assigned to themselves); reset their current patients' passwords
 //   admin/therapist -> delete the accounts of patients they manage
@@ -77,6 +78,37 @@ Deno.serve(async (req) => {
     // Deleting the sign-in account removes the profile and all of the patient's records.
     const { error } = await db.auth.admin.deleteUser(t.id);
     return error ? fail(error.message) : json({ ok: true });
+  }
+
+  // ---------------------------------------------------------------- owner: suspend / delete a clinic
+  if (body.action === "set_clinic_active" || body.action === "delete_clinic") {
+    if (me.role !== "owner") return fail("not_allowed", 403);
+    const { data: clinic } = await db.from("clinics").select("id, name").eq("id", String(body.clinic_id ?? "")).maybeSingle();
+    if (!clinic) return fail("not_found", 404);
+    const { data: people, error: pErr } = await db.from("profiles").select("id, role").eq("clinic_id", clinic.id);
+    if (pErr) return fail(pErr.message);
+
+    if (body.action === "set_clinic_active") {
+      const active = String(body.active) === "true";
+      // A suspended clinic's staff and patients are banned from signing in until it is reactivated.
+      for (const p of people ?? []) {
+        const { error } = await db.auth.admin.updateUserById(p.id, { ban_duration: active ? "none" : "876000h" });
+        if (error) return fail(error.message);
+      }
+      const { error } = await db.from("clinics").update({ active }).eq("id", clinic.id);
+      return error ? fail(error.message) : json({ ok: true, people: people?.length ?? 0 });
+    }
+
+    if (String(body.confirm_name ?? "").trim() !== clinic.name) return fail("confirm_name_mismatch");
+    // Patients first (their programs reference the therapists), then staff, then the clinic.
+    await db.from("profiles").update({ created_by: null }).eq("clinic_id", clinic.id);
+    const ordered = [...(people ?? [])].sort((a, b) => Number(b.role === "patient") - Number(a.role === "patient"));
+    for (const p of ordered) {
+      const { error } = await db.auth.admin.deleteUser(p.id);
+      if (error) return fail(error.message);
+    }
+    const { error } = await db.from("clinics").delete().eq("id", clinic.id);
+    return error ? fail(error.message) : json({ ok: true, deleted: ordered.length });
   }
 
   if (password.length < 8) return fail("password_too_short");
