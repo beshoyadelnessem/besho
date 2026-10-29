@@ -79,7 +79,7 @@ export function ReadAloud({ slug, gender, onPart = () => {} }) {
     let a = ref.current;
     if (!a) {
       a = ref.current = new Audio(track.src);
-      a.ontimeupdate = () => onPart(partAt(track.starts, a.currentTime));
+      a.ontimeupdate = () => { if (!a.paused) onPart(partAt(track.starts, a.currentTime)); };
       a.onended = stop;
       a.onerror = () => { stop(); setFailed(true); };
     }
