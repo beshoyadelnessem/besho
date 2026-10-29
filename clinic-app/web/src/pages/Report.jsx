@@ -4,6 +4,7 @@ import { exText, useI18n } from '../i18n.js';
 import { DayStrip, PainChart } from '../components/ui.jsx';
 import { eventText } from './StaffPatient.jsx';
 import { addDays, ageFrom, clock, dateLabel, dateTime, holdLabel, todayISO } from '../lib/format.js';
+import { Icon } from '../components/icons.jsx';
 
 // Printable one-page summary for the surgeon or the patient ("Save as PDF" in the print dialog).
 export default function Report({ id, library, go }) {
@@ -37,7 +38,7 @@ export default function Report({ id, library, go }) {
         <div><div className="small muted">{t('age')}</div><b>{ageFrom(p.birth_year) ?? '—'}</b></div>
         <div><div className="small muted">{t('startDate')}</div><b>{p.treatment_start ? dateLabel(p.treatment_start, lang) : '—'}</b></div>
         <div><div className="small muted">{t('therapist')}</div><b>{therapist?.full_name ?? '—'}</b></div>
-        <div><div className="small muted">🔥</div><b>{streak.streak} {t('streakDays')}</b></div>
+        <div><div className="small muted"><Icon name="flame" size={16} /></div><b>{streak.streak} {t('streakDays')}</b></div>
         <div><div className="small muted">{t('adherence')}</div><b>{t('fullDays', { n: scored ? Math.round(((counts.done || 0) / scored) * 100) : 0 })}</b></div>
       </div>
       <div className="card stack"><b>{t('adherence')}</b><DayStrip days={days} /></div>
@@ -49,7 +50,7 @@ export default function Report({ id, library, go }) {
             <td>{r.sets} × {r.reps}{r.hold_sec ? ` · ${holdLabel(r.hold_sec, lang)}` : ''}</td><td>{t('phaseN', { n: byId[r.exercise_slug]?.phase })}</td></tr>
         ))}</tbody></table>
       </div>
-      <div className="card stack"><b>{t('badgesEarned')}</b><div className="row">{badges.length ? badges.map((b) => <span key={b.kind} className="chip">🏅 {t('badge_' + b.kind)}</span>) : <span className="small muted">{t('none')}</span>}</div></div>
+      <div className="card stack"><b>{t('badgesEarned')}</b><div className="row">{badges.length ? badges.map((b) => <span key={b.kind} className="chip"><Icon name="award" size={14} /> {t('badge_' + b.kind)}</span>) : <span className="small muted">{t('none')}</span>}</div></div>
       <div className="card stack"><b>{t('record')}</b>
         <ul className="timeline">{events.slice(0, 20).map((e) => <li key={e.id}><span className="small muted">{dateTime(e.created_at, lang)}</span><div>{eventText(e, t)}</div></li>)}</ul>
       </div>

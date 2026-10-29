@@ -65,7 +65,7 @@ textarea { resize: vertical; min-height: 70px; }
 .streak .num { font-size: 34px; font-weight: 800; color: var(--flame); line-height: 1; font-variant-numeric: tabular-nums; }
 .restore { background: var(--flame-soft); border: 2px dashed var(--flame); border-radius: 18px; padding: 12px 14px; display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
 
-.days { display: grid; grid-template-columns: repeat(14, 1fr); gap: 4px; }
+.days { display: grid; grid-template-columns: repeat(14, minmax(0, 1fr)); gap: 4px; }
 .days span { aspect-ratio: 1; border-radius: 7px; background: var(--surface-2); border: 1px solid var(--line); display: grid; place-items: center; font-size: 11px; font-weight: 700; color: var(--muted); }
 .days .done { background: var(--teal); color: var(--on-teal); border-color: var(--teal); }
 .days .missed { background: var(--red-bg); color: var(--red); border-color: var(--red-line); }
@@ -135,7 +135,7 @@ html.large ol.steps li { font-size: 17px; }
 .badge { display: inline-flex; gap: 6px; align-items: center; font-size: 13px; font-weight: 700; border-radius: 999px; padding: 3px 12px;
   background: var(--surface); border: 1.5px dashed var(--line); color: var(--muted); }
 .badge.won { border: 1.5px solid var(--flame); background: var(--flame-soft); color: var(--flame); }
-.scale { display: grid; grid-template-columns: repeat(11, 1fr); gap: 4px; }
+.scale { display: grid; grid-template-columns: repeat(11, minmax(0, 1fr)); gap: 4px; }
 .scale button { border: 1.5px solid var(--line); border-radius: 10px; padding: 8px 0; font-weight: 800; background: var(--surface);
   color: var(--ink); box-shadow: inset 0 -4px 0 hsl(var(--h) 70% 55%); }
 .scale button[aria-pressed="true"] { background: var(--ink); color: var(--bg); }
@@ -163,3 +163,51 @@ code.secret { font-size: 15px; font-weight: 700; background: var(--surface-2); b
 .btn.small-btn { padding: 4px 10px; min-height: 0; font-size: 13px; }
 .delete-box { border: 1.5px solid var(--red-line); background: var(--red-bg); border-radius: 12px; padding: 12px; }
 .caution-text { color: var(--red); font-weight: 700; }
+
+/* ---- icons and phone layout ---- */
+.ic { flex: none; display: block; }
+[dir=rtl] .ic-dir { transform: scaleX(-1); }
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 44px; }
+.btn.small-btn { min-height: 0; }
+.icon-btn { width: 44px; height: 44px; padding: 0; display: inline-grid; place-items: center; border-radius: 14px; }
+.icon-tile { width: 44px; height: 44px; flex: none; border-radius: 12px; display: grid; place-items: center; background: var(--teal-soft); color: var(--teal); }
+.chip { display: inline-flex; align-items: center; gap: 4px; }
+.badge .ic { color: var(--muted); }
+.badge.won .ic { color: var(--flame); }
+.session .go { color: var(--muted); display: grid; place-items: center; }
+.session.open .go { color: var(--green); }
+.session.late .go { color: var(--amber); }
+.notice .ic, .steps + .notice .ic { display: inline-block; vertical-align: -3px; }
+body { padding-bottom: calc(40px + env(safe-area-inset-bottom, 0px)); }
+.logo { width: 40px; height: 40px; object-fit: contain; border-radius: 12px; flex: none; }
+
+/* Main actions stay under the thumb on phones */
+.actionbar { position: sticky; bottom: 0; z-index: 5; background: var(--bg); padding: 10px 0 calc(10px + env(safe-area-inset-bottom, 0px)); margin-bottom: -40px; flex-wrap: nowrap; }
+.chat-page { min-height: 100dvh; }
+.chat-page .thread { max-height: none; flex: 1; }
+.chat-page .composer { position: sticky; bottom: 0; z-index: 5; background: var(--bg); padding: 10px 0 calc(10px + env(safe-area-inset-bottom, 0px)); margin-bottom: -40px; flex-wrap: nowrap; }
+@media (max-width: 420px) {
+  .page { gap: 12px; }
+  .card { padding: 12px 14px; border-radius: 16px; }
+  .session .thumb { width: 88px; height: 62px; }
+  .badges { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; }
+  .badge { justify-content: center; padding: 3px 4px; font-size: 12px; gap: 3px; white-space: nowrap; }
+}
+
+/* ---- text on phones ---- */
+html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+body { overflow-wrap: break-word; }
+p, .small, .notice, .cheer, .restore, .caution, .bubble, .steps li { text-wrap: pretty; }
+.bubble, .timeline, .notice { overflow-wrap: anywhere; }
+h1, h2, .nm, b { text-wrap: balance; }
+.nowrap { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.session .chip { margin-top: 4px; }
+/* headers: the name takes the free space; buttons drop to their own line on narrow phones */
+.top { flex-wrap: wrap; row-gap: 8px; }
+.top > div:not(.row) { flex: 1 1 150px; min-width: 0; }
+.top > div:not(.row) > b, .top > div:not(.row) > h1 { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.top > .icon-btn, .top > .demo-badge, .top > .chip { flex: none; }
+@media (max-width: 480px) {
+  .top > .row { margin-inline-start: auto; }
+  .top h1 { font-size: 20px !important; }
+}

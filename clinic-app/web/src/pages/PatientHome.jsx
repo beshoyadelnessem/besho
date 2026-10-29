@@ -3,6 +3,7 @@ import { api } from '../api/index.js';
 import { exText, useI18n } from '../i18n.js';
 import { DayStrip, ErrorBox, Figure, Logo, useError } from '../components/ui.jsx';
 import { addDays, clock, dateLabel, dateTime, dayName, todayISO } from '../lib/format.js';
+import { Icon } from '../components/icons.jsx';
 
 const BADGE_ORDER = ['streak3', 'streak7', 'streak14', 'streak30'];
 
@@ -44,9 +45,9 @@ export default function PatientHome({ me, look, library, go }) {
         {api.demo && <span className="demo-badge">{t('demo')}</span>}
         <div className="row" style={{ marginInlineStart: api.demo ? 0 : 'auto' }}>
           {me.chat_enabled && (
-            <button className="btn ghost icon-btn" onClick={() => go('chat')} aria-label={t('chat')}>💬{unread > 0 && <span className="dot">{unread}</span>}</button>
+            <button className="btn ghost icon-btn" onClick={() => go('chat')} aria-label={t('chat')}><Icon name="chat" />{unread > 0 && <span className="dot">{unread}</span>}</button>
           )}
-          <button className="btn ghost icon-btn" onClick={() => go('prefs')} aria-label={t('settings')}>⚙︎</button>
+          <button className="btn ghost icon-btn" onClick={() => go('prefs')} aria-label={t('settings')}><Icon name="settings" /></button>
         </div>
       </div>
 
@@ -59,7 +60,7 @@ export default function PatientHome({ me, look, library, go }) {
           <svg width="44" height="52" viewBox="0 0 44 52" aria-hidden="true"><path d="M22 2c4 10 16 16 16 30a16 16 0 0 1-32 0c0-8 5-12 8-18 2 6 6 8 6 8 0-8 0-14 2-20z" fill="var(--flame)" /></svg>
           <div style={{ flex: 1 }}>
             <div className="num">{streak.streak}</div>
-            <div className="small muted">{streak.streak === 1 ? t('streakDay') : t('streakDays')}</div>
+            <div className="small muted nowrap">{streak.streak === 1 ? t('streakDay') : t('streakDays')}</div>
           </div>
           <div className="small muted" style={{ textAlign: 'end' }}>
             {streak.restore_used_this_week ? t('restoreUsed') : t('restoreLeft')}
@@ -70,7 +71,7 @@ export default function PatientHome({ me, look, library, go }) {
       <div className="badges" aria-label={t('badges')}>
         {BADGE_ORDER.map((k) => (
           <span key={k} className={`badge ${badges.includes(k) ? 'won' : ''}`} title={t('badge_' + k)}>
-            <span aria-hidden="true">{badges.includes(k) ? '🏅' : '○'}</span>{t('badge_' + k)}
+            <Icon name="award" size={16} />{t('badge_' + k)}
           </span>
         ))}
       </div>
@@ -86,7 +87,7 @@ export default function PatientHome({ me, look, library, go }) {
 
       {appt && (
         <div className="card row" style={{ gap: 12 }}>
-          <span aria-hidden="true" style={{ fontSize: 26 }}>📅</span>
+          <span className="icon-tile"><Icon name="calendar" /></span>
           <div><b>{t('nextAppt')}</b><div className="small">{dateTime(appt.starts_at, lang)}</div></div>
         </div>
       )}
@@ -106,10 +107,11 @@ export default function PatientHome({ me, look, library, go }) {
               <div className="thumb">{ex && <Figure slug={ex.slug} look={look} still />}</div>
               <div className="info">
                 <div className="nm">{exText(ex, lang).name}</div>
-                <div className="small muted">{t('window', { from: clock(s.opens_at, lang), to: clock(s.late_at, lang) })}{s.state !== 'done' && ` · ${t('lastChance', { time: clock(s.closes_at, lang) })}`}</div>
-                <span className={`chip ${s.state}`}>{t('st_' + s.state)}{s.state === 'done' && s.late ? ` (${t('late')})` : ''}</span>
+                <div className="small muted nowrap">{t('window', { from: clock(s.opens_at, lang), to: clock(s.late_at, lang) })}</div>
+                {s.state !== 'done' && s.state !== 'closed' && <div className="small muted nowrap">{t('lastChance', { time: clock(s.closes_at, lang) })}</div>}
+                <span className={`chip ${s.state}`}>{s.state === 'done' && <Icon name="check" size={14} />}{t('st_' + s.state)}{s.state === 'done' && s.late ? ` (${t('late')})` : ''}</span>
               </div>
-              <span aria-hidden="true" style={{ fontSize: 20 }}>{locked ? '🔒' : (lang === 'ar' ? '‹' : '›')}</span>
+              <span className="go">{locked ? <Icon name="lock" size={20} /> : <Icon name="chevron" size={20} />}</span>
             </button>
           );
         })}

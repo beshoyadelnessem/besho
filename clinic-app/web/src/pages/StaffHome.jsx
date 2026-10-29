@@ -3,6 +3,7 @@ import { api } from '../api/index.js';
 import { LANGS, exText, useI18n } from '../i18n.js';
 import { ErrorBox, LangSwitch, Logo, useError } from '../components/ui.jsx';
 import { clock, dateTime, todayISO } from '../lib/format.js';
+import { Icon } from '../components/icons.jsx';
 
 function AddPatient({ me, staff, onDone }) {
   const { t, lang } = useI18n();
@@ -180,11 +181,11 @@ export default function StaffHome({ me, go, library, setLang }) {
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div className="nm">{p.full_name}{' '}
                       {alerts > 0 && <span className="badge-red">{t('painBadge', { n: alerts })}</span>}{' '}
-                      {unread[p.id] > 0 && <span className="badge-teal">💬 {t('unreadBadge', { n: unread[p.id] })}</span>}
+                      {unread[p.id] > 0 && <span className="badge-teal"><Icon name="chat" size={14} /> {t('unreadBadge', { n: unread[p.id] })}</span>}
                     </div>
                     <div className="small muted"><span dir="ltr">{p.phone}</span>{me.role === 'admin' && ` · ${nameOf(cur?.therapist_id)}`}{!mineNow && ` · ${t('movedAway')}`}</div>
                   </div>
-                  {st && <span className="chip rest">🔥 {st.streak}</span>}
+                  {st && <span className="chip rest"><Icon name="flame" size={14} /> {st.streak}</span>}
                   {!p.onboarded && <span className="chip upcoming">{t('notSignedYet')}</span>}
                   <span aria-hidden="true">{lang === 'ar' ? '‹' : '›'}</span>
                 </button>

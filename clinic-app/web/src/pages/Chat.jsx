@@ -3,6 +3,7 @@ import { api } from '../api/index.js';
 import { useI18n } from '../i18n.js';
 import { ErrorBox, useError } from '../components/ui.jsx';
 import { dateTime } from '../lib/format.js';
+import { Icon } from '../components/icons.jsx';
 
 // One conversation per patient. Used full-page by the patient and embedded in the staff view.
 export function ChatThread({ patientId, meId, canWrite, names = {} }) {
@@ -38,7 +39,7 @@ export function ChatThread({ patientId, meId, canWrite, names = {} }) {
       </div>
       <ErrorBox error={error} />
       {canWrite ? (
-        <form className="row" onSubmit={send}>
+        <form className="row composer" onSubmit={send}>
           <input id="chat-input" value={body} onChange={(e) => setBody(e.target.value)} placeholder={t('chatPh')} maxLength={1000} style={{ flex: 1 }} />
           <button className="btn">{t('send')}</button>
         </form>
@@ -50,8 +51,8 @@ export function ChatThread({ patientId, meId, canWrite, names = {} }) {
 export default function PatientChat({ me, go }) {
   const { t, lang } = useI18n();
   return (
-    <div className="page">
-      <div className="top"><button className="btn ghost icon-btn" onClick={() => go('')} aria-label={t('back')}>{lang === 'ar' ? '→' : '←'}</button><h1 style={{ fontSize: 20 }}>{t('chatWith')}</h1></div>
+    <div className="page chat-page">
+      <div className="top"><button className="btn ghost icon-btn" onClick={() => go('')} aria-label={t('back')}><Icon name="back" /></button><h1 style={{ fontSize: 20 }}>{t('chatWith')}</h1></div>
       <ChatThread patientId={me.id} meId={me.id} canWrite={me.chat_enabled} />
     </div>
   );

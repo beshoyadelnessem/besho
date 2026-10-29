@@ -4,6 +4,7 @@ import { drawScene, lookFor } from '../figure/rig.js';
 import { LANGS, errorKey, useI18n } from '../i18n.js';
 import { audioFor, partAt } from '../lib/audio.js';
 import { ageFrom, dateLabel, dayNum } from '../lib/format.js';
+import { Icon } from './icons.jsx';
 
 export const lookOf = (p) => lookFor({ gender: p?.gender, hijab: p?.avatar?.hijab, age: ageFrom(p?.birth_year) });
 
@@ -90,7 +91,7 @@ export function ReadAloud({ slug, gender, onPart = () => {} }) {
   return (
     <div className="row">
       <button type="button" className="btn ghost" onClick={toggle}>
-        {on ? t('stopListen') : t('listen')}{track.lang !== lang && !on ? ` ${t('inEnglish')}` : ''}
+        <Icon name={on ? 'stop' : 'volume'} size={18} />{on ? t('stopListen') : t('listen')}{track.lang !== lang && !on ? ` ${t('inEnglish')}` : ''}
       </button>
       {failed && <span className="small muted">{t('audioFailed')}</span>}
     </div>
@@ -100,7 +101,7 @@ export function ReadAloud({ slug, gender, onPart = () => {} }) {
 export function DayStrip({ days }) {
   const { t, lang } = useI18n();
   return (
-    <div className="days" style={{ gridTemplateColumns: `repeat(${Math.min(days.length, 14)}, 1fr)` }}>
+    <div className="days" style={{ gridTemplateColumns: `repeat(${Math.min(days.length, 14)}, minmax(0, 1fr))` }}>
       {days.map((d) => <span key={d.day} className={d.status} title={`${dateLabel(d.day, lang)}: ${t('day_' + d.status)}`}>{dayNum(d.day)}</span>)}
     </div>
   );
@@ -132,6 +133,7 @@ export function PainChart({ scores, from, days = 28 }) {
   );
 }
 
-export const Logo = () => (
-  <div className="logo"><svg width="22" height="22" viewBox="0 0 24 24"><path d="M12 3v18M3 12h18" stroke="var(--on-teal)" strokeWidth="4" strokeLinecap="round" /></svg></div>
-);
+// Brand mark in the page headers. Empty until the clinic's logo arrives: put the file in
+// web/public/ (e.g. logo.svg) and set LOGO_SRC to its name.
+const LOGO_SRC = null;
+export const Logo = () => (LOGO_SRC ? <img className="logo" src={LOGO_SRC} alt="" /> : null);

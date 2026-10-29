@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { api } from '../api/index.js';
 import { useI18n } from '../i18n.js';
 import { ErrorBox, LangSwitch, useError } from '../components/ui.jsx';
+import { Icon } from '../components/icons.jsx';
 
 const b64ToBytes = (s) => {
   const pad = '='.repeat((4 - (s.length % 4)) % 4);
@@ -50,7 +51,7 @@ export default function PatientSettings({ me, reload, go, setLang }) {
 
   return (
     <div className="page">
-      <div className="top"><button className="btn ghost icon-btn" onClick={() => go('')} aria-label={t('back')}>{lang === 'ar' ? '→' : '←'}</button><h1 style={{ fontSize: 20 }}>{t('settings')}</h1></div>
+      <div className="top"><button className="btn ghost icon-btn" onClick={() => go('')} aria-label={t('back')}><Icon name="back" /></button><h1 style={{ fontSize: 20 }}>{t('settings')}</h1></div>
       <div className="card toggle"><b>{t('language')}</b><LangSwitch value={lang} onChange={(l) => { setLang(l); save({ lang: l }); }} /></div>
       <Toggle id="sw-notif" label={t('notifications')} body={t('notifBody')} on={me.notifications_enabled} onToggle={toggleNotifications} />
       <Toggle id="sw-large" label={t('largeText')} body={t('largeBody')} on={me.large_text} onToggle={() => save({ large_text: !me.large_text })} />

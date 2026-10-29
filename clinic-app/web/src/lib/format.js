@@ -10,7 +10,8 @@ export function clock(v, lang) {
   if (!v) return '';
   const t = v.includes('T') ? v.split('T')[1] : v;
   const [h, m] = t.split(':').map(Number);
-  return new Date(2000, 0, 1, h, m).toLocaleTimeString(LOCALE[lang], { hour: 'numeric', minute: '2-digit' });
+  // non-breaking space, so "2:57 م" / "2:57 PM" never splits across two lines
+  return new Date(2000, 0, 1, h, m).toLocaleTimeString(LOCALE[lang], { hour: 'numeric', minute: '2-digit' }).replace(/\s/g, '\u00A0');
 }
 export const dayName = (iso, lang) => new Date(iso + 'T12:00:00').toLocaleDateString(LOCALE[lang], { weekday: 'long' });
 export const dateLabel = (iso, lang) => new Date(iso + 'T12:00:00').toLocaleDateString(LOCALE[lang], { day: 'numeric', month: 'long' });

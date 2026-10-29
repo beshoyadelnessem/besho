@@ -6,6 +6,7 @@ import { ChatThread } from './Chat.jsx';
 import { addDays, ageFrom, clock, dateLabel, dateTime, holdLabel, todayISO } from '../lib/format.js';
 import { phaseText } from '../lib/program.js';
 import { normName } from '../lib/names.js';
+import { Icon } from '../components/icons.jsx';
 
 function Prescribe({ patientId, library, onDone }) {
   const { t, lang } = useI18n();
@@ -175,10 +176,10 @@ export default function StaffPatient({ me, id, library, go }) {
   return (
     <div className="page wide">
       <div className="top">
-        <button className="btn ghost icon-btn" onClick={() => go('')} aria-label={t('back')}>{lang === 'ar' ? '→' : '←'}</button>
+        <button className="btn ghost icon-btn" onClick={() => go('')} aria-label={t('back')}><Icon name="back" /></button>
         <div style={{ flex: 1, minWidth: 0 }}><h1 style={{ fontSize: 22 }}>{p.full_name}</h1>
           <div className="small muted"><span dir="ltr">{p.phone}</span>{p.gender && ` · ${t(p.gender)}`}{p.birth_year && ` · ${ageFrom(p.birth_year)}`} · {names[cur?.therapist_id] ?? '—'}</div></div>
-        <span className="chip rest" style={{ fontSize: 16 }}>🔥 {streak.streak}</span>
+        <span className="chip rest" style={{ fontSize: 16 }}><Icon name="flame" size={16} /> {streak.streak}</span>
         <button className="btn ghost" onClick={() => go('report-' + p.id)}>{t('report')}</button>
       </div>
       {!canEdit && <div className="notice">{t('readOnly')}</div>}
@@ -243,7 +244,7 @@ export default function StaffPatient({ me, id, library, go }) {
                 {r.active ? (canEdit && <button className="btn danger" onClick={() => act(() => api.stopPrescription(r.id), t('exStopped'))}>{t('stop')}</button>)
                   : <span className="chip upcoming">{t('stopped')}</span>}
               </div>
-              {r.extra_caution && <div className="small" style={{ color: 'var(--red)', fontWeight: 800 }}>⚠ {r.extra_caution}</div>}
+              {r.extra_caution && <div className="small" style={{ color: 'var(--red)', fontWeight: 800 }}><Icon name="alert" size={16} /> {r.extra_caution}</div>}
             </div>
           ))}
           {canEdit && rx.some((r) => r.active) && (

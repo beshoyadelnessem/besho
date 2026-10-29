@@ -3,6 +3,7 @@ import { api } from '../api/index.js';
 import { exText, useI18n } from '../i18n.js';
 import { Caution, ErrorBox, Figure, ReadAloud, useError } from '../components/ui.jsx';
 import { clock, holdLabel } from '../lib/format.js';
+import { Icon } from '../components/icons.jsx';
 
 export default function ExerciseView({ id, look, library, go }) {
   const { t, lang } = useI18n();
@@ -59,7 +60,7 @@ export default function ExerciseView({ id, look, library, go }) {
   return (
     <div className="page">
       <div className="top">
-        <button className="btn ghost icon-btn" onClick={() => go('')} aria-label={t('back')}>{lang === 'ar' ? '→' : '←'}</button>
+        <button className="btn ghost icon-btn" onClick={() => go('')} aria-label={t('back')}><Icon name="back" /></button>
         <div style={{ flex: 1, textAlign: 'center' }}><h1 style={{ fontSize: 20 }}>{tx.name}</h1>{lang !== 'en' && <div className="en">{ex.content.en.name}</div>}</div>
         <span className={`chip ${s.state}`}>{clock(s.opens_at, lang)}</span>
       </div>
@@ -83,7 +84,7 @@ export default function ExerciseView({ id, look, library, go }) {
       <div className="card stack">
         <div className="row spread"><b>{t('steps')}</b><ReadAloud slug={ex.slug} gender={look.female ? 'f' : 'm'} onPart={setReading} /></div>
         <ol className="steps">{tx.steps.map((x, i) => <li key={x} className={reading === i + 3 ? 'reading' : ''}>{x}</li>)}</ol>
-        {tx.tip && <div className={`notice small${reading === tx.steps.length + 3 ? ' reading' : ''}`}>💡 {tx.tip}</div>}
+        {tx.tip && <div className={`notice small${reading === tx.steps.length + 3 ? ' reading' : ''}`}><Icon name="bulb" size={18} /> {tx.tip}</div>}
       </div>
 
       <ErrorBox error={error} />
@@ -93,9 +94,9 @@ export default function ExerciseView({ id, look, library, go }) {
       ) : locked ? (
         <div className="error">{s.state === 'upcoming' ? t('opensAt', { time: clock(s.opens_at, lang) }) : t('closedMsg')}</div>
       ) : (
-        <div className="row">
-          <button className="btn ghost" style={{ flex: 1 }} onClick={toggleCoach}>{coachRef.current ? t('coachStop') : t('coachStart')}</button>
-          <button className="btn" style={{ flex: 1.4 }} onClick={finish}>{t('finish')}</button>
+        <div className="row actionbar">
+          <button className="btn ghost" style={{ flex: 1 }} onClick={toggleCoach}><Icon name={coachRef.current ? 'stop' : 'play'} size={18} />{coachRef.current ? t('coachStop') : t('coachStart')}</button>
+          <button className="btn" style={{ flex: 1.4 }} onClick={finish}><Icon name="check" size={20} />{t('finish')}</button>
         </div>
       )}
       {s.state === 'late' && <div className="small" style={{ color: 'var(--amber)', fontWeight: 700 }}>{t('graceNote', { time: clock(s.closes_at, lang) })}</div>}
