@@ -107,7 +107,7 @@ export function createDemoApi() {
   );
 
   // A demo page made for one role (tools/single-file.py --role) opens signed in as that role.
-  const ROLE_USER = { patient: 'p1', therapist: 't1', admin: 'admin', owner: 'owner' };
+  const ROLE_USER = { patient: 'p1', 'new-patient': 'p3', therapist: 't1', admin: 'admin', owner: 'owner' };
   const lockedRole = typeof window !== 'undefined' ? window.__DEMO_ROLE__ : undefined;
   let uid = ROLE_USER[lockedRole] ?? null;
   const me = () => db.profiles.find((p) => p.id === uid);
@@ -162,7 +162,7 @@ export function createDemoApi() {
 
   const api = {
     demo: true,
-    demoRole: lockedRole || null,
+    demoRole: lockedRole === 'new-patient' ? 'patient' : (lockedRole || null),
     async session() { return uid; },
     onAuth(cb) { listeners.add(cb); return { unsubscribe: () => listeners.delete(cb) }; },
     async signIn(id) {

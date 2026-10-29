@@ -1,11 +1,11 @@
 # Inlines the web build into one HTML file for a shareable demo page:
-#   python3 tools/single-file.py dist out.html [--role patient|therapist|admin|owner] [--title "..."] [--no-audio]
+#   python3 tools/single-file.py dist out.html [--role patient|new-patient|therapist|admin|owner] [--title "..."] [--no-audio]
 # --role opens the page signed in as that demo role and hides the other roles' buttons.
 import argparse, base64, glob, json, os
 
 ap = argparse.ArgumentParser()
 ap.add_argument('dist'); ap.add_argument('out')
-ap.add_argument('--role', choices=['patient', 'therapist', 'admin', 'owner'])
+ap.add_argument('--role', choices=['patient', 'new-patient', 'therapist', 'admin', 'owner'])
 ap.add_argument('--title', default='تمارين البيت')
 ap.add_argument('--no-audio', action='store_true')
 a = ap.parse_args()
