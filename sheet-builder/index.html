@@ -1,3 +1,5 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Session Sheet Builder</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -109,6 +111,7 @@ input:focus-visible, select:focus-visible, textarea:focus-visible, button:focus-
 .btn.mic .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--warn); display: inline-block; }
 .btn.mic.on { border-color: var(--warn); color: var(--warn); }
 @media (prefers-reduced-motion: no-preference) { .btn.mic.on .dot { animation: pulse 1s infinite; } @keyframes pulse { 50% { opacity: .25; } } }
+.kbd-steps { margin: 0; padding-inline-start: 18px; font-size: 13px; display: grid; gap: 2px; }
 .heard { display: grid; gap: 8px; border-top: 1px dashed var(--line); padding-top: 10px; }
 .heard .miss { font-size: 12.5px; color: var(--warn); }
 .heard .miss span { font-family: var(--f-mono); }
@@ -141,8 +144,13 @@ input:focus-visible, select:focus-visible, textarea:focus-visible, button:focus-
         <p class="note">Example: <i>“Right knee. Russian, cryo, laser 10 minutes. Lymphatic drainage, quad sets, SLR, TKE, home exercises. Back: clamshell, TrA.”</i></p>
         <div class="row-btns">
           <button class="btn mic" type="button" id="mic" hidden><span class="dot" aria-hidden="true"></span><span id="mic-label">Start talking</span></button>
-          <span class="note" id="mic-note">Tap the box and use the mic on your phone keyboard.</span>
+          <span class="note" id="mic-note"></span>
         </div>
+        <ol class="kbd-steps" id="kbd-steps">
+          <li>Tap the box below.</li>
+          <li>On the keyboard, tap the microphone (Android: top right of the keyboard. iPhone: bottom right, next to the space bar).</li>
+          <li>Speak, then tap <b>Match to my sheets</b>.</li>
+        </ol>
         <label class="f" for="say">What you said<textarea id="say" rows="3" placeholder="Speak or type here, then tap Match"></textarea></label>
         <div class="row-btns">
           <button class="btn primary" type="button" id="match">Match to my sheets</button>
@@ -924,8 +932,10 @@ $('#say').addEventListener('keydown', (e) => { if (e.key === 'Enter' && !e.shift
 // Inside the Claude viewer the microphone is blocked, so the keyboard mic is the way in.
 (() => {
   const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-  if (!SR) return;
-  const mic = $('#mic'); mic.hidden = false; $('#mic-note').textContent = 'Or use the mic on your phone keyboard.';
+  // Inside the Claude viewer the page is framed and the microphone is always blocked: keep to the keyboard mic.
+  let framed = true; try { framed = window.self !== window.top; } catch { framed = true; }
+  if (!SR || framed) { $('#mic-note').textContent = framed ? 'Here the page cannot open the microphone itself. Your keyboard mic works:' : ''; return; }
+  const mic = $('#mic'); mic.hidden = false; $('#mic-note').textContent = 'Or use the keyboard mic:';
   let rec = null, base = '';
   const stop = () => { rec?.stop(); };
   mic.onclick = () => {
@@ -936,7 +946,7 @@ $('#say').addEventListener('keydown', (e) => { if (e.key === 'Enter' && !e.shift
       for (let i = 0; i < ev.results.length; i++) (ev.results[i].isFinal ? (fin += ev.results[i][0].transcript + ' ') : (mid += ev.results[i][0].transcript));
       $('#say').value = [base, fin.trim(), mid].filter(Boolean).join(' '); };
     rec.onerror = (ev) => { if (ev.error === 'not-allowed' || ev.error === 'service-not-allowed' || ev.error === 'audio-capture') {
-      mic.hidden = true; $('#mic-note').textContent = 'The microphone is blocked here. Tap the box and use the mic on your phone keyboard.'; } };
+      mic.hidden = true; $('#mic-note').textContent = 'The microphone is blocked in this browser. Your keyboard mic works:'; } };
     rec.onend = () => { rec = null; mic.classList.remove('on'); $('#mic-label').textContent = 'Start talking'; if ($('#say').value.trim()) runMatch(); };
     try { rec.start(); } catch { rec = null; mic.hidden = true; }
   };
