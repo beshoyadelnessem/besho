@@ -1,0 +1,712 @@
+<title>Session Sheet Builder</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Sans+Condensed:wght@600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style>
+/* Layout: steps on the left in the order the doctor writes a sheet; the live sheet on the right, drawn like the clinic's paper form. */
+:root {
+  --bg: #F1F4F3; --panel: #FFFFFF; --ink: #142422; --muted: #5C6F6C; --line: #D6E0DE;
+  --accent: #0E6E66; --accent-soft: #DDF0EC; --on-accent: #FFFFFF;
+  --pick: #0E6E66; --ai: #6B4FA8; --ai-soft: #EEE8F8; --warn: #B42318; --warn-soft: #FDEDEB;
+  --paper: #FFFFFF; --rule: #B9C7C4; --hand: #1D2F8C;
+  --f-ui: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+  --f-head: "IBM Plex Sans Condensed", "IBM Plex Sans", "Arial Narrow", sans-serif;
+  --f-mono: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #0E1716; --panel: #15211F; --ink: #E4EEEC; --muted: #93A8A4; --line: #273835;
+  --accent: #3CB7A9; --accent-soft: #173A36; --on-accent: #0E1716;
+  --pick: #3CB7A9; --ai: #B49AF0; --ai-soft: #2A2340; --warn: #F2877C; --warn-soft: #3A1E1B;
+  --paper: #1A2826; --rule: #36504C; --hand: #A9B8FF; color-scheme: dark; } }
+:root[data-theme="dark"] {
+  --bg: #0E1716; --panel: #15211F; --ink: #E4EEEC; --muted: #93A8A4; --line: #273835;
+  --accent: #3CB7A9; --accent-soft: #173A36; --on-accent: #0E1716;
+  --pick: #3CB7A9; --ai: #B49AF0; --ai-soft: #2A2340; --warn: #F2877C; --warn-soft: #3A1E1B;
+  --paper: #1A2826; --rule: #36504C; --hand: #A9B8FF; color-scheme: dark; }
+
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+body { background: var(--bg); color: var(--ink); font: 14px/1.5 var(--f-ui); }
+.wrap { max-width: 1280px; margin: 0 auto; padding-block: 16px 96px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); display: grid; gap: 16px; }
+header.bar { display: flex; flex-wrap: wrap; align-items: end; gap: 12px 20px; }
+.brand h1 { font: 700 24px/1.1 var(--f-head); margin: 0; letter-spacing: .2px; text-wrap: balance; }
+.brand p { margin: 2px 0 0; color: var(--muted); font-size: 13px; }
+.who { display: flex; flex-wrap: wrap; gap: 10px; margin-inline-start: auto; }
+label.f { display: grid; gap: 3px; font-size: 11px; font-weight: 600; letter-spacing: .5px; text-transform: uppercase; color: var(--muted); }
+input, select, textarea { font: 14px var(--f-ui); color: var(--ink); background: var(--panel); border: 1.5px solid var(--line); border-radius: 8px; padding: 7px 10px; min-width: 0; }
+input:focus-visible, select:focus-visible, textarea:focus-visible, button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.main { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 20px; align-items: start; }
+@media (max-width: 900px) { .main { grid-template-columns: minmax(0, 1fr); } }
+
+/* steps */
+.steps { display: grid; gap: 12px; min-width: 0; }
+.step { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; display: grid; gap: 10px; min-width: 0; }
+.step > h2 { margin: 0; font: 700 16px/1.2 var(--f-head); display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+.step > h2 .n { font: 500 12px var(--f-mono); color: var(--accent); }
+.step > h2 .hint { font: 400 12px var(--f-ui); color: var(--muted); }
+.reg-title { font: 700 13px var(--f-head); letter-spacing: .4px; text-transform: uppercase; color: var(--accent); display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.grp { display: grid; gap: 6px; }
+.grp-h { font-size: 12px; color: var(--muted); display: flex; gap: 6px; align-items: baseline; flex-wrap: wrap; }
+.grp-h b { color: var(--ink); font-weight: 600; }
+.grp-h .one { font: 500 10px var(--f-mono); border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip { font: 500 13px/1.3 var(--f-ui); color: var(--ink); background: var(--panel); border: 1.5px solid var(--line); border-radius: 999px; padding: 5px 11px; cursor: pointer; text-align: start; display: inline-flex; gap: 6px; align-items: baseline; max-width: 100%; }
+.chip:hover { border-color: var(--accent); }
+.chip[aria-pressed="true"] { background: var(--pick); border-color: var(--pick); color: var(--on-accent); }
+.chip .src { font: 400 10.5px var(--f-mono); opacity: .7; white-space: nowrap; }
+.chip.ai { border-style: dashed; border-color: var(--ai); background: var(--ai-soft); }
+.chip.tog { border-radius: 8px; }
+.chip.custom .src { font-style: italic; }
+.region-pick { display: flex; flex-wrap: wrap; gap: 8px; }
+.region { border: 1.5px solid var(--line); border-radius: 10px; padding: 6px 8px 6px 12px; display: inline-flex; gap: 8px; align-items: center; background: var(--panel); }
+.region.on { border-color: var(--accent); background: var(--accent-soft); }
+.region button.name { all: unset; cursor: pointer; font: 600 14px var(--f-ui); }
+.side { display: inline-flex; border: 1px solid var(--line); border-radius: 6px; overflow: hidden; }
+.side button { font: 600 11px var(--f-mono); border: 0; background: transparent; color: var(--muted); padding: 3px 7px; cursor: pointer; }
+.side button[aria-pressed="true"] { background: var(--accent); color: var(--on-accent); }
+.mins { display: inline-flex; align-items: center; gap: 4px; font: 500 12px var(--f-mono); }
+.mins input { width: 52px; padding: 2px 6px; font: 500 12px var(--f-mono); }
+.picked-tx { display: grid; gap: 6px; }
+.picked-tx .row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; justify-content: space-between; border: 1px solid var(--line); border-radius: 8px; padding: 6px 10px; }
+.picked-tx .row span { min-width: 0; }
+.add { display: flex; gap: 6px; } .add input { flex: 1; }
+.btn { font: 600 13px var(--f-ui); border: 1.5px solid var(--line); background: var(--panel); color: var(--ink); border-radius: 8px; padding: 7px 12px; cursor: pointer; display: inline-flex; gap: 6px; align-items: center; }
+.btn:hover { border-color: var(--accent); }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+.btn.ai { border-color: var(--ai); color: var(--ai); }
+.btn.ghost { border-color: transparent; color: var(--muted); }
+.btn[disabled] { opacity: .5; cursor: default; }
+.row-btns { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.note { font-size: 12px; color: var(--muted); }
+.together { border-top: 1px dashed var(--line); padding-top: 8px; }
+.search { position: relative; }
+.search input { width: 100%; padding-inline-start: 34px; }
+.search svg { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); color: var(--muted); }
+.results { display: flex; flex-wrap: wrap; gap: 6px; }
+.results .chip .reg { font: 600 10px var(--f-mono); color: var(--accent); }
+.results .chip[aria-pressed="true"] .reg { color: inherit; }
+
+/* the sheet */
+.sheet-col { position: sticky; top: calc(12px + env(safe-area-inset-top, 0px)); display: grid; gap: 10px; min-width: 0; }
+@media (max-width: 900px) { .sheet-col { position: static; } }
+.paper { background: var(--paper); border: 1px solid var(--line); border-radius: 6px; padding: 18px 20px 22px; box-shadow: 0 1px 0 var(--line); min-width: 0; }
+.paper .ph { display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap; font: 500 12px var(--f-mono); color: var(--muted); border-bottom: 2px solid var(--ink); padding-bottom: 6px; margin-bottom: 10px; }
+.paper .ex { font: 600 10px var(--f-mono); color: var(--ai); border: 1px solid var(--ai); border-radius: 4px; padding: 0 5px; }
+.paper h3 { font: 700 13px var(--f-ui); margin: 12px 0 2px; }
+.paper .lines { font: 15px/28px var(--f-ui); color: var(--hand); background-image: repeating-linear-gradient(to bottom, transparent 0 27px, var(--rule) 27px 28px); min-height: 56px; overflow-wrap: anywhere; white-space: pre-wrap; }
+.paper .lines .empty { color: var(--muted); font-size: 13px; font-style: italic; }
+.paper .prec { color: var(--warn); font-weight: 600; }
+.paper .foot { margin-top: 10px; font: 11px var(--f-mono); color: var(--muted); text-align: end; }
+.bar-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.toast { min-height: 20px; font-size: 12px; color: var(--accent); }
+.how { font-size: 12.5px; color: var(--muted); }
+.how summary { cursor: pointer; color: var(--ink); font-weight: 600; }
+.how ol { margin: 6px 0 0; padding-inline-start: 18px; display: grid; gap: 3px; }
+.dock { display: none; }
+@media (max-width: 900px) {
+  .dock { display: flex; position: fixed; left: 0; right: 0; bottom: 0; z-index: 20; gap: 8px; background: var(--panel); border-top: 1px solid var(--line);
+    padding-block: 10px calc(10px + env(safe-area-inset-bottom, 0px)); padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+  .dock .btn { flex: 1; justify-content: center; }
+}
+@media (prefers-reduced-motion: no-preference) { .chip, .btn { transition: border-color .12s, background .12s; } }
+</style>
+
+<div class="wrap">
+  <header class="bar">
+    <div class="brand">
+      <h1>Session Sheet Builder</h1>
+      <p>Tap what you would write. Every option comes from your own sheets.</p>
+    </div>
+    <div class="who">
+      <label class="f" for="patient">Patient<input id="patient" list="patients" placeholder="Name or file no." autocomplete="off"></label>
+      <datalist id="patients"></datalist>
+      <label class="f" for="date">Date<input id="date" type="date"></label>
+    </div>
+  </header>
+
+  <div class="main">
+    <div class="steps" id="steps"></div>
+
+    <aside class="sheet-col">
+      <div class="paper" id="paper" aria-live="polite"></div>
+      <div class="bar-actions">
+        <button class="btn primary" id="copy" type="button">Copy sheet</button>
+        <button class="btn" id="pdf" type="button" hidden>Download PDF</button>
+        <button class="btn" id="save" type="button">Save session</button>
+        <button class="btn" id="prev" type="button" hidden>Repeat last session</button>
+        <button class="btn ghost" id="clear" type="button">Clear</button>
+      </div>
+      <div class="toast" id="toast" role="status"></div>
+      <details class="how">
+        <summary>How this follows your sheets</summary>
+        <ol>
+          <li>Pick the area and side, the way each sheet starts (Cervical, Dorsolumbar, (R) knee…).</li>
+          <li>Examination: tenderness, ROM, weakness, tests, edema, control and proprioception.</li>
+          <li>Medical treatment in your usual order: current, then cold, then laser, then extras.</li>
+          <li>Rehabilitation in your progression, area by area, ending with home exercises.</li>
+          <li>Precautions go in brackets after the program, like “[No resisted exs or manual exs]”.</li>
+          <li>Next visit, “Repeat last session” brings the same program back, or writes “As previous”.</li>
+        </ol>
+        <p>Options show the sheet numbers they were read from (S4 = sheet 4). Nothing here diagnoses: you choose, the page only writes it out.</p>
+      </details>
+    </aside>
+  </div>
+</div>
+
+<div class="dock">
+  <button class="btn primary" id="copy2" type="button">Copy sheet</button>
+  <button class="btn" id="save2" type="button">Save</button>
+</div>
+
+<script>
+// ---------------------------------------------------------------------------
+// Catalog: every option below was read from the clinic's 11 session sheets.
+// s = the sheets it appears on. {S} = side, {min} = minutes.
+// Groups marked one:true are alternatives the doctor chose between (pick one).
+// ---------------------------------------------------------------------------
+const SIDE_TXT = { R: '(R)', L: '(L)', B: 'bilat.' };
+const CATALOG = [
+  { id: 'cervical', name: 'Cervical', side: 'L', sheets: [1, 3, 7, 8],
+    exam: [
+      { g: 'Tenderness & ROM', items: [
+        { id: 'ten', t: 'Tenderness', s: [1] },
+        { id: 'rotsb', t: 'Limited ROM of rotation & side bending', s: [1, 3, 7] },
+        { id: 'ext', t: 'Limited ROM of ext', s: [3] } ] },
+      { g: 'Tests', items: [
+        { id: 'ultt', t: '+ve ULTT', s: [3] },
+        { id: 'spur', t: '+ve Spurling test', s: [3] } ] },
+      { g: 'Muscles', items: [
+        { id: 'tight', t: 'Tightness of U.T. & levator scapulae', s: [7] },
+        { id: 'dnf', t: 'Weakness of deep neck flex & semispinalis', s: [7] },
+        { id: 'grip', t: 'Weakness of hand grip & scapular ms', s: [3] } ] } ],
+    tx: [
+      { g: 'Current', items: [
+        { id: 'dip', t: 'Dipole for cervicodorsal up to T8 {min} min', min: 15, s: [3, 8] },
+        { id: 'arm', t: '2 pole HF {S} lat. arm & {S} lat. forearm {min} min', min: 15, s: [3] } ] },
+      { g: 'Laser', items: [ { id: 'laser', t: 'Laser {min} min for cervicodorsal', min: 15, s: [1, 3, 8] } ] },
+      { g: 'Extras', items: [ { id: 'pad', t: 'Electrical pad', s: [8] } ] } ],
+    rehab: [
+      { g: 'Manual', items: [
+        { id: 'trac', t: 'Cervical & dorsal traction', s: [3, 8] },
+        { id: 'met', t: 'MET for U.T., levator & scalene', s: [3, 8] },
+        { id: 'peri', t: 'Periscapular area release', s: [3, 8] },
+        { id: 'subocc', t: 'Suboccipital release & stretching exs', s: [3, 8] } ] },
+      { g: 'Mulligan', items: [
+        { id: 'c2', t: 'C2 SNAG', s: [3, 8] },
+        { id: 'bridge', t: 'Bridging technique for cervicodorsal junction', s: [3, 8] },
+        { id: 'rnags', t: 'Reverse NAGs for cervicodorsal junction', s: [3, 8] },
+        { id: 'c567', t: 'Cervical SNAG C5-6-7', s: [3, 8] } ] },
+      { g: 'Nerve & mobility', items: [
+        { id: 'ndt', t: 'NDT for {S} median n. & radial n.', s: [3] },
+        { id: 'mob', t: 'Mobility & flexibility exs', s: [3, 8] } ] },
+      { g: 'Activation & strength', items: [
+        { id: 'dnfact', t: 'Activation of deep neck flex & semispinalis', s: [3, 8] },
+        { id: 'trap', t: 'Middle, lower trapezius & serratus ant. exs', s: [8] },
+        { id: 'irer', t: 'IR, ER strengthening exs', s: [3, 8] } ] },
+      { g: 'Control & home', items: [
+        { id: 'prox', t: 'Proximal control exs', s: [3, 8] },
+        { id: 'home', t: 'Home exs', s: [3, 8] } ] } ] },
+
+  { id: 'dorsolumbar', name: 'Dorsolumbar', side: 'B', sheets: [4, 7, 8, 9, 10, 11],
+    exam: [
+      { g: 'Tests', items: [ { id: 'sij', t: 'SIJ -ve', s: [7] } ] },
+      { g: 'Muscles', items: [
+        { id: 'core', t: 'Weakness of core stability', s: [7, 10] },
+        { id: 'glute', t: 'Weakness of glute max & med', s: [7, 10] } ] } ],
+    tx: [
+      { g: 'Current', items: [ { id: 'dip', t: 'Dipole for dorsolumbar {min} min', min: 15, s: [8] } ] },
+      { g: 'Laser', items: [ { id: 'laser', t: 'Laser {min} min for lumbar', min: 15, s: [8] } ] } ],
+    rehab: [
+      { g: 'Release & mobility', items: [
+        { id: 'tl', t: 'Gentle TL fascia release', s: [8, 9] },
+        { id: 'prone', t: 'Prone with pillow below pelvis, ext to neutral', s: [8, 9, 10] },
+        { id: 'k2c', t: 'Knee to chest exs', s: [8, 9] } ] },
+      { g: 'Activation', items: [
+        { id: 'tra', t: 'Activation of TrA, multifidus & glute max', s: [4, 8, 9, 10, 11] },
+        { id: 'clam', t: 'Clamshell exs', s: [4, 8, 9, 10, 11] } ] },
+      { g: 'Stabilization', items: [
+        { id: 'rhythm', t: 'Isometric rhythmic spinal stabilization then alternative', s: [4, 8, 9, 10, 11] },
+        { id: 'trunk', t: 'Trunk motor control exs from supine & quadruped', s: [4, 8, 9, 10, 11] } ] },
+      { g: 'Hips', items: [ { id: 'hipirer', t: 'From prone & sitting both hips IR, ER (isometric, conc)', s: [8, 9, 10, 11] } ] },
+      { g: 'Home', items: [ { id: 'home', t: 'Home exs', s: [9] } ] } ] },
+
+  { id: 'knee', name: 'Knee', side: 'R', sheets: [4, 8, 9, 11],
+    exam: [
+      { g: 'Swelling & ROM', items: [
+        { id: 'edema', t: 'Edema', s: [4] },
+        { id: 'flex', t: 'Limited ROM of knee flex', s: [4] },
+        { id: 'ext', t: 'Limited ext ROM', s: [4] } ] },
+      { g: 'Muscles', items: [ { id: 'weak', t: 'Weakness of quads, hamst, glute max & med', s: [4] } ] } ],
+    tx: [
+      { g: 'Current', items: [ { id: 'rus', t: 'Russian for {S} quads + 2 pole surge {S} knee {min} min', min: 20, s: [4, 9, 11] } ] },
+      { g: 'Cold', items: [ { id: 'cryo', t: 'Cryo {min} min {S} knee', min: 15, s: [4, 9, 11] } ] },
+      { g: 'Laser', items: [ { id: 'laser', t: 'Laser {min} min {S} knee', min: 15, s: [4, 9, 11] } ] } ],
+    rehab: [
+      { g: 'Swelling & mobility', items: [
+        { id: 'lymph', t: 'Lymphatic drainage', s: [4, 9] },
+        { id: 'pf', t: 'PF mobilization', s: [4, 9, 11] },
+        { id: 'aprom', t: 'Auto-passive ROM for knee flex', s: [4] },
+        { id: 'mwm', t: 'Unloading MWM for {S} knee flex & IR tibia', s: [9, 11] } ] },
+      { g: 'Activation', items: [
+        { id: 'sets', t: 'Quads, hamst sets', s: [4, 8, 9, 11] },
+        { id: 'slr', t: 'SLR short arc', s: [4, 8, 9, 11] } ] },
+      { g: 'Strengthening', items: [
+        { id: 'tke', t: 'Terminal knee ext from OKC then CKC', s: [4, 8, 9, 11] },
+        { id: 'iso', t: 'Isometric angular knee strengthening exs', s: [9, 11] },
+        { id: 'pfdf', t: 'PF, DF strengthening exs by theraband', s: [4] },
+        { id: 'legext', t: 'Leg ext exs', s: [9] },
+        { id: 'abdadd', t: 'Abd, add machine exs', s: [4, 9] } ] },
+      { g: 'Control & function', items: [
+        { id: 'prox', t: 'Proximal control exs short lever', s: [4, 8, 9, 11] },
+        { id: 'prop', t: 'Proprioceptive exs', s: [4, 9, 11] },
+        { id: 'gait', t: 'Gait training exs by crutch', s: [4] } ] },
+      { g: 'Home', items: [ { id: 'home', t: 'Home exs', s: [4, 8, 9, 11] } ] } ] },
+
+  { id: 'hip', name: 'Hip', side: 'B', sheets: [10],
+    exam: [
+      { g: 'Tenderness', items: [ { id: 'ant', t: 'Tenderness of ant. hip {S}', s: [10] } ] },
+      { g: 'Muscles', items: [ { id: 'weak', t: 'Weakness of glute max, med & core stability', s: [10] } ] } ],
+    tx: [
+      { g: 'Current', items: [ { id: 'hf', t: '2 pole HF {S} ant. hip (rectus femoris origin) + Russian for {S} quads {min} min', min: 20, s: [10] } ] },
+      { g: 'Laser', items: [ { id: 'laser', t: 'Laser {min} min {S} ant. hip', min: 15, s: [10] } ] } ],
+    rehab: [
+      { g: 'Mulligan', items: [
+        { id: 'unload', t: 'Unloading MWM for {S} hips flex & IR', s: [10] },
+        { id: 'load', t: 'Then loading MWM for {S} hips flex, abd, ext', s: [10] } ] },
+      { g: 'Activation', items: [
+        { id: 'sets', t: 'Quads, hamst sets', s: [10] },
+        { id: 'slr', t: 'SLR short arc', s: [10] },
+        { id: 'tke', t: 'Terminal knee ext from OKC then CKC', s: [10] } ] },
+      { g: 'Strength & control', items: [
+        { id: 'abdadd', t: 'Abd, add strengthening exs', s: [10] },
+        { id: 'prox', t: 'Proximal control exs short lever', s: [10] },
+        { id: 'prop', t: 'Proprioceptive exs', s: [10] } ] },
+      { g: 'Home', items: [ { id: 'home', t: 'Home exs', s: [10] } ] } ] },
+
+  { id: 'wrist', name: 'Wrist & hand', side: 'L', sheets: [1, 2, 5],
+    exam: [
+      { g: 'Tenderness & pain', items: [
+        { id: 'tfcc', t: 'Tenderness of {S} TFCC', s: [1] },
+        { id: 'resist', t: 'Pain with resistance', s: [1] },
+        { id: 'hyper', t: 'Hyperalgesia of {S} wrist & hand', s: [2] } ] },
+      { g: 'Swelling & ROM', items: [
+        { id: 'edema', t: 'Edema', s: [2] },
+        { id: 'rom', t: 'Limited ROM of wrist & finger', s: [2] } ] },
+      { g: 'Muscles', items: [ { id: 'weak', t: 'Weakness of hand grip & wrist flex & ext', s: [5] } ] } ],
+    tx: [
+      { g: 'Current', one: true, items: [
+        { id: 'rtfcc', t: 'Russian for {S} wrist flexor + 2 pole HF {S} TFCC {min} min', min: 20, s: [1] },
+        { id: 'rwrist', t: 'Russian for {S} wrist flexor + 2 pole HF {S} wrist {min} min', min: 20, s: [2] },
+        { id: 'rhand', t: 'Russian for {S} wrist flexor + 2 pole surge {S} hand {min} min', min: 20, s: [5] } ] },
+      { g: 'Cold', items: [ { id: 'ice', t: 'Ice massage {min} min {S} TFCC', min: 5, s: [1] } ] },
+      { g: 'Laser', one: true, items: [
+        { id: 'ltfcc', t: 'Laser {min} min {S} TFCC ulnar side', min: 15, s: [1] },
+        { id: 'lwrist', t: 'Laser {min} min {S} wrist', min: 15, s: [2] },
+        { id: 'lgraft', t: 'Laser {min} min grafted area', min: 10, s: [5] } ] },
+      { g: 'Extras', items: [
+        { id: 'pad', t: 'Electrical pad {S} wrist', s: [2] },
+        { id: 'phrep', t: 'Phonophoresis by Betaderm {min} min repaired side', min: 5, s: [2] },
+        { id: 'phgraft', t: 'Phonophoresis by Betaderm grafted area {min} min', min: 8, s: [5] } ] } ],
+    rehab: [
+      { g: 'Tissue & mobility', items: [
+        { id: 'scar', t: 'Scar mobilization', s: [2, 5] },
+        { id: 'prom', t: 'PROM for {S} wrist & finger', s: [2] },
+        { id: 'aprom', t: 'Auto-passive ROM for {S} wrist & finger', s: [2] },
+        { id: 'pipdip', t: 'PIP, DIP mobilization Gr. II-III', s: [5] },
+        { id: 'romex', t: 'ROM exs for wrist & finger', s: [5] } ] },
+      { g: 'Hand grip', items: [
+        { id: 'griprom', t: 'Hand grip exs ROM', s: [2] },
+        { id: 'gripap', t: 'Hand grip auto-passive exs', s: [5] },
+        { id: 'gripiso', t: 'Isometric hand grip exs', s: [5] } ] },
+      { g: 'Strength', items: [
+        { id: 'ot', t: 'O.T. hand exs', s: [5] },
+        { id: 'wiso', t: 'Isometric wrist strengthening exs', s: [5] },
+        { id: 'load', t: 'Gradual loading exs', s: [5] } ] },
+      { g: 'Home', items: [ { id: 'home', t: 'Home exs', s: [2, 5] } ] } ] },
+
+  { id: 'fingers', name: 'Fingers', side: 'R', sheets: [6],
+    exam: [
+      { g: 'Tenderness', items: [ { id: 'pipdip', t: 'Tenderness of {S} PIP & DIP', s: [6] } ] },
+      { g: 'Muscles', items: [
+        { id: 'grip', t: 'Weakness of hand grip', s: [6] },
+        { id: 'gripw', t: 'Weakness of hand grip & wrist flex', s: [6] } ] } ],
+    tx: [ { g: 'Current', items: [ { id: 'rus', t: 'Russian for {S} wrist flex + 2 pole HF {S} index {min} min', min: 20, s: [6] } ] } ],
+    rehab: [
+      { g: 'Mobilization', items: [
+        { id: 'pip', t: 'PIP mobilization', s: [6] },
+        { id: 'mwm', t: 'MWM for index', s: [6] } ] },
+      { g: 'Strength', items: [
+        { id: 'grip', t: 'Hand grip strengthening exs', s: [6] },
+        { id: 'isopip', t: 'Isometric PIP exs', s: [6] },
+        { id: 'dip', t: 'DIP exs', s: [6] } ] },
+      { g: 'Home', items: [ { id: 'home', t: 'Home exs', s: [6] } ] } ] },
+];
+// Findings the doctor wrote for any area.
+const GENERAL_EXAM = [
+  { id: 'prox', t: '↓ Proximal control', s: [1, 4, 7] },
+  { id: 'prop', t: '↓ Proprioception', s: [1, 7] },
+];
+const PRECAUTIONS = [ { id: 'noresist', t: 'No resisted exs or manual exs', s: [2] } ];
+// Pairs that were written on the same sheet. Shown as "Written together before", never as advice.
+const TOGETHER = [
+  ['cervical.exam.ultt', ['cervical.rehab.ndt', 'cervical.tx.arm'], 3],
+  ['cervical.exam.spur', ['cervical.tx.arm'], 3],
+  ['cervical.exam.tight', ['cervical.rehab.met'], 8],
+  ['knee.exam.edema', ['knee.rehab.lymph', 'knee.tx.cryo'], 4],
+  ['knee.exam.flex', ['knee.rehab.aprom', 'knee.rehab.pf'], 4],
+  ['wrist.exam.hyper', ['prec.noresist', 'wrist.tx.pad', 'wrist.rehab.prom'], 2],
+  ['wrist.exam.edema', ['wrist.tx.pad', 'wrist.rehab.aprom'], 2],
+  ['wrist.exam.tfcc', ['wrist.tx.ice', 'wrist.tx.ltfcc'], 1],
+  ['wrist.tx.phgraft', ['wrist.tx.lgraft', 'wrist.rehab.scar'], 5],
+  ['wrist.tx.phrep', ['wrist.rehab.scar', 'prec.noresist'], 2],
+  ['fingers.exam.pipdip', ['fingers.rehab.mwm', 'fingers.rehab.isopip'], 6],
+  ['hip.exam.ant', ['hip.tx.hf', 'hip.rehab.unload'], 10],
+  ['dorsolumbar.exam.core', ['dorsolumbar.rehab.tra', 'dorsolumbar.rehab.rhythm'], 10],
+  ['dorsolumbar.exam.glute', ['dorsolumbar.rehab.clam'], 10],
+];
+const EXAMPLE = { patient: '', regions: [['knee', 'R'], ['dorsolumbar', 'B']], picked: {
+  'knee.tx.rus': { min: 20 }, 'knee.tx.cryo': { min: 15 }, 'knee.tx.laser': { min: 15 },
+  'dorsolumbar.rehab.tra': {}, 'dorsolumbar.rehab.clam': {}, 'dorsolumbar.rehab.rhythm': {}, 'dorsolumbar.rehab.trunk': {}, 'dorsolumbar.rehab.hipirer': {},
+  'knee.rehab.pf': {}, 'knee.rehab.mwm': {}, 'knee.rehab.sets': {}, 'knee.rehab.slr': {}, 'knee.rehab.tke': {}, 'knee.rehab.iso': {},
+  'knee.rehab.prox': {}, 'knee.rehab.prop': {}, 'knee.rehab.home': {} }, follow: '', example: true };
+
+// ---------------------------------------------------------------------------
+// Storage (this device only)
+// ---------------------------------------------------------------------------
+const store = {
+  get(k, d) { try { const v = localStorage.getItem('ssb.' + k); return v ? JSON.parse(v) : d; } catch { return d; } },
+  set(k, v) { try { localStorage.setItem('ssb.' + k, JSON.stringify(v)); } catch { /* storage blocked */ } },
+};
+const today = () => new Date().toISOString().slice(0, 10);
+const custom = store.get('custom', {});            // { 'knee.rehab': [{id,t}] }
+const usage = store.get('usage', {});              // { key: count }
+let sessions = store.get('sessions', []);          // saved sheets
+let state = store.get('draft', null) || { ...structuredClone(EXAMPLE), date: today() };
+if (!state.date) state.date = today();
+
+const REG = Object.fromEntries(CATALOG.map((r) => [r.id, r]));
+const sideOf = (rid) => (state.regions.find(([r]) => r === rid) || [])[1] || REG[rid].side;
+function groupsOf(rid, sec) {
+  const base = REG[rid][sec] || [];
+  const extra = custom[`${rid}.${sec}`] || [];
+  return extra.length ? [...base, { g: 'Your items', items: extra.map((x) => ({ ...x, custom: true })) }] : base;
+}
+function itemOf(key) {
+  const [rid, sec, id] = key.split('.');
+  if (rid === 'prec') return PRECAUTIONS.find((p) => p.id === sec);
+  if (sec === 'exam' && GENERAL_EXAM.some((g) => g.id === id) && !REG[rid].exam.some((g) => g.items.some((i) => i.id === id))) return GENERAL_EXAM.find((g) => g.id === id);
+  for (const g of groupsOf(rid, sec)) { const it = g.items.find((i) => i.id === id); if (it) return it; }
+  if (sec === 'exam') return GENERAL_EXAM.find((g) => g.id === id);
+  return null;
+}
+function text(key) {
+  const it = itemOf(key); if (!it) return '';
+  const rid = key.split('.')[0];
+  const side = rid === 'prec' ? '' : SIDE_TXT[sideOf(rid)];
+  const min = state.picked[key]?.min ?? it.min;
+  return it.t.replaceAll('{S}', side).replaceAll('{min}', min);
+}
+// keys in catalog order (the doctor's order), for one region and section
+function orderedKeys(rid, sec) {
+  const keys = [];
+  for (const g of groupsOf(rid, sec)) for (const it of g.items) keys.push(`${rid}.${sec}.${it.id}`);
+  if (sec === 'exam') for (const it of GENERAL_EXAM) if (!keys.includes(`${rid}.exam.${it.id}`)) keys.push(`${rid}.exam.${it.id}`);
+  return keys.filter((k) => state.picked[k]);
+}
+
+// ---------------------------------------------------------------------------
+// The sheet text, written the way the sheets are written
+// ---------------------------------------------------------------------------
+function sheet() {
+  const regs = state.regions.map(([r]) => r);
+  const many = regs.filter((r) => orderedKeys(r, 'exam').length).length > 1;
+  const exam = regs.map((r) => { const k = orderedKeys(r, 'exam'); if (!k.length) return '';
+    const label = r === 'knee' || r === 'wrist' || r === 'fingers' || r === 'hip' ? `${SIDE_TXT[sideOf(r)]} ${REG[r].name.toLowerCase()}` : REG[r].name;
+    return (many ? `${label} → ` : '') + k.map(text).join(' / '); }).filter(Boolean);
+  const tx = regs.flatMap((r) => orderedKeys(r, 'tx').map(text));
+  const rehabRegs = regs.filter((r) => orderedKeys(r, 'rehab').length);
+  const rehab = rehabRegs.map((r) => {
+    const label = ['knee', 'wrist', 'fingers', 'hip'].includes(r) ? `${SIDE_TXT[sideOf(r)]} ${REG[r].name.toLowerCase()}` : REG[r].name;
+    return (rehabRegs.length > 1 ? `⇒ ${label} → ` : '') + orderedKeys(r, 'rehab').map(text).join(' / '); });
+  const prec = PRECAUTIONS.filter((p) => state.picked[`prec.${p.id}`]).map((p) => `[${p.t}]`);
+  return { exam, tx: tx.length ? [tx.join(' / ')] : [], rehab, prec, follow: state.follow?.trim() ? [state.follow.trim()] : [] };
+}
+const fmtDate = (iso) => { const [y, m, d] = (iso || today()).split('-'); return `${+d}/${+m}/${y}`; };
+function sheetText() {
+  const s = sheet(); const out = [`${fmtDate(state.date)}${state.patient ? '  ·  ' + state.patient : ''}`];
+  if (state.asPrevious) { out.push('', `${fmtDate(state.date)} As previous.`); return out.join('\n'); }
+  const sec = (h, lines) => { out.push('', h + ':'); out.push(...(lines.length ? lines : ['—'])); };
+  sec('Examination', s.exam); sec('Medical treatment', s.tx); sec('Rehabilitation', [...s.rehab, ...s.prec]);
+  if (s.follow.length) sec('Follow up', s.follow);
+  return out.join('\n');
+}
+
+// ---------------------------------------------------------------------------
+// Rendering
+// ---------------------------------------------------------------------------
+const $ = (s) => document.querySelector(s);
+const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const src = (it) => it.custom ? 'yours' : `S${it.s.join(',')}`;
+let aiPicks = []; // ids suggested by AI, shown until picked or cleared
+
+function chip(key, it, extraCls = '') {
+  const on = !!state.picked[key];
+  const used = usage[key] ? ` · ${usage[key]}×` : '';
+  const label = text(key) || it.t;
+  return `<button type="button" class="chip ${extraCls} ${it.custom ? 'custom' : ''}" data-key="${key}" aria-pressed="${on}">${esc(label)}<span class="src">${src(it)}${used}</span></button>`;
+}
+function groupHtml(rid, sec, g) {
+  const keys = g.items.map((it) => `${rid}.${sec}.${it.id}`);
+  // most-used first inside a group, otherwise the doctor's order
+  const order = g.items.map((it, i) => [it, keys[i]]).sort((a, b) => (usage[b[1]] || 0) - (usage[a[1]] || 0) || 0);
+  return `<div class="grp"><div class="grp-h"><b>${esc(g.g)}</b>${g.one ? '<span class="one">pick one</span>' : ''}</div>
+    <div class="chips">${order.map(([it, k]) => chip(k, it, aiPicks.includes(k) && !state.picked[k] ? 'ai' : '')).join('')}</div></div>`;
+}
+// Shown in the step the suggested item belongs to (precautions go with rehabilitation).
+function togetherHtml(rid, sec) {
+  const out = [];
+  for (const [when, adds, sheetNo] of TOGETHER) {
+    if (!when.startsWith(rid + '.') || !state.picked[when]) continue;
+    for (const k of adds) {
+      const inStep = k.startsWith('prec.') ? sec === 'rehab' : k.split('.')[1] === sec;
+      if (inStep && !state.picked[k] && !out.some((o) => o[0] === k)) out.push([k, sheetNo]);
+    }
+  }
+  if (!out.length) return '';
+  return `<div class="grp together"><div class="grp-h"><b>Written together before</b><span>same sheet, for you to decide</span></div>
+    <div class="chips">${out.map(([k, n]) => { const it = itemOf(k); return it ? chip(k, { ...it, s: [n] }) : ''; }).join('')}</div></div>`;
+}
+function addHtml(rid, sec) {
+  return `<form class="add" data-add="${rid}.${sec}"><input id="add-${rid}-${sec}" placeholder="Add your own ${sec === 'tx' ? 'treatment' : sec === 'exam' ? 'finding' : 'exercise'} for ${REG[rid].name}" maxlength="120"><button class="btn" type="submit">Add</button></form>`;
+}
+function sectionStep(n, sec, title, hint) {
+  const regs = state.regions.map(([r]) => r);
+  let body = regs.length ? '' : '<p class="note">Pick an area in step 1 first.</p>';
+  for (const r of regs) {
+    const groups = groupsOf(r, sec);
+    const general = sec === 'exam' ? `<div class="grp"><div class="grp-h"><b>Control</b></div><div class="chips">${GENERAL_EXAM.filter((g) => !groups.some((x) => x.items.some((i) => i.id === g.id))).map((it) => chip(`${r}.exam.${it.id}`, it)).join('')}</div></div>` : '';
+    const picked = sec === 'tx' ? txRows(r) : '';
+    body += `<div class="grp"><div class="reg-title">${esc(REG[r].name)} <span class="note">${SIDE_TXT[sideOf(r)]}</span>
+      <button class="btn ghost" type="button" data-usual="${r}.${sec}">Add usual set</button></div>
+      ${groups.map((g) => groupHtml(r, sec, g)).join('')}${general}${picked}${togetherHtml(r, sec)}${addHtml(r, sec)}</div>`;
+  }
+  return `<section class="step"><h2><span class="n">${n}</span>${title}<span class="hint">${hint}</span></h2>${body}</section>`;
+}
+function txRows(r) {
+  const keys = orderedKeys(r, 'tx').filter((k) => itemOf(k)?.min != null);
+  if (!keys.length) return '';
+  return `<div class="picked-tx">${keys.map((k) => `<div class="row"><span>${esc(text(k))}</span>
+    <label class="mins" for="min-${k.replaceAll('.', '-')}">min <input id="min-${k.replaceAll('.', '-')}" type="number" min="1" max="60" value="${state.picked[k].min ?? itemOf(k).min}" data-min="${k}"></label></div>`).join('')}</div>`;
+}
+function renderSteps() {
+  const regionChips = CATALOG.map((r) => {
+    const on = state.regions.find(([x]) => x === r.id);
+    const side = on ? on[1] : r.side;
+    return `<div class="region ${on ? 'on' : ''}"><button class="name" type="button" data-region="${r.id}" aria-pressed="${!!on}">${esc(r.name)}</button>
+      <span class="side" role="group" aria-label="${esc(r.name)} side">${['R', 'L', 'B'].map((s) => `<button type="button" data-side="${r.id}.${s}" aria-pressed="${!!on && side === s}">${s === 'B' ? 'Bi' : s}</button>`).join('')}</span>
+      <span class="src note">S${r.sheets.join(',')}</span></div>`;
+  }).join('');
+  $('#steps').innerHTML = `
+  <section class="step"><h2><span class="n">1</span>Area & side<span class="hint">as each sheet starts</span></h2>
+    <div class="region-pick">${regionChips}</div>
+    <div class="search"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+      <input id="find" type="search" placeholder="Find anything you write: slr, clamshell, laser, snag…" autocomplete="off" value="${esc(findQ)}"></div>
+    <div class="results" id="results"></div>
+    <div class="row-btns" id="ai-row"></div>
+  </section>
+  ${sectionStep(2, 'exam', 'Examination', 'what you found')}
+  ${sectionStep(3, 'tx', 'Medical treatment', 'current → cold → laser → extras')}
+  ${sectionStep(4, 'rehab', 'Rehabilitation', 'in your progression, ending with home exs')}
+  <section class="step"><h2><span class="n">5</span>Precautions & follow up</h2>
+    <div class="chips">${PRECAUTIONS.map((p) => chip(`prec.${p.id}`, p)).join('')}</div>
+    <label class="f" for="follow">Follow up<textarea id="follow" rows="2" placeholder="Optional">${esc(state.follow || '')}</textarea></label>
+  </section>`;
+  renderResults(); renderAI();
+}
+let findQ = '';
+function renderResults() {
+  const box = $('#results'); if (!box) return;
+  const q = findQ.trim().toLowerCase().split(/\s+/).filter(Boolean);
+  if (!q.length) { box.innerHTML = ''; return; }
+  const hits = [];
+  for (const r of CATALOG) for (const sec of ['exam', 'tx', 'rehab']) for (const g of groupsOf(r.id, sec)) for (const it of g.items) {
+    const t = it.t.toLowerCase(); if (q.every((w) => t.includes(w))) hits.push([`${r.id}.${sec}.${it.id}`, it, r]);
+  }
+  box.innerHTML = hits.length ? hits.slice(0, 18).map(([k, it, r]) => {
+    const on = !!state.picked[k];
+    return `<button type="button" class="chip" data-key="${k}" aria-pressed="${on}"><span class="reg">${esc(r.name)}</span>${esc(it.t.replaceAll('{S}', SIDE_TXT[sideOf(r.id)]).replaceAll('{min}', it.min ?? ''))}<span class="src">${src(it)}</span></button>`;
+  }).join('') : '<span class="note">Nothing like that on your sheets yet. Add it under its area with “Add your own”.</span>';
+}
+function renderPaper() {
+  const s = sheet(); const p = $('#paper');
+  const lines = (arr, cls = '') => arr.length ? arr.map((l) => `<div class="${cls}">${esc(l)}</div>`).join('') : '<span class="empty">Nothing picked yet</span>';
+  p.innerHTML = `<div class="ph"><span>${esc(fmtDate(state.date))}${state.patient ? ' · ' + esc(state.patient) : ''}</span>${state.example ? '<span class="ex">EXAMPLE · from sheet 11</span>' : ''}</div>
+    ${state.asPrevious ? `<div class="lines">${esc(fmtDate(state.date))} As previous.</div>` : `
+    <h3>Examination:</h3><div class="lines">${lines(s.exam)}</div>
+    <h3>Medical treatment:</h3><div class="lines">${lines(s.tx)}</div>
+    <h3>Rehabilitation:</h3><div class="lines">${s.rehab.length || s.prec.length ? lines(s.rehab) + s.prec.map((x) => `<div class="prec">${esc(x)}</div>`).join('') : lines([])}</div>
+    ${s.follow.length ? `<h3>Follow up:</h3><div class="lines">${lines(s.follow)}</div>` : ''}`}
+    <div class="foot">Physician · signature · date · time</div>`;
+  const last = lastFor(state.patient);
+  $('#prev').hidden = !last;
+  const names = [...new Set(sessions.map((x) => x.patient).filter(Boolean))];
+  $('#patients').innerHTML = names.map((n) => `<option value="${esc(n)}"></option>`).join('');
+}
+function render() { renderSteps(); renderPaper(); store.set('draft', state); }
+function renderAI() {
+  const row = $('#ai-row'); if (!row) return;
+  if (!sampleFn) { row.innerHTML = ''; return; }
+  row.innerHTML = `<button class="btn ai" type="button" id="ai-go" ${state.regions.length ? '' : 'disabled'}>Suggest from my sheets (AI)</button>
+    <span class="note" id="ai-note">${aiNote}</span>`;
+}
+
+// ---------------------------------------------------------------------------
+// Actions
+// ---------------------------------------------------------------------------
+function touch() { state.example = false; state.asPrevious = false; }
+function toggle(key) {
+  touch();
+  const [rid, sec, id] = key.split('.');
+  if (rid !== 'prec' && !state.regions.some(([r]) => r === rid)) state.regions.push([rid, REG[rid].side]);
+  if (state.picked[key]) { delete state.picked[key]; }
+  else {
+    // "pick one" groups: replace the other choice
+    if (rid !== 'prec') { const g = groupsOf(rid, sec).find((x) => x.items.some((i) => i.id === id)); if (g?.one) for (const it of g.items) delete state.picked[`${rid}.${sec}.${it.id}`]; }
+    state.picked[key] = {};
+  }
+  aiPicks = aiPicks.filter((k) => k !== key);
+  render();
+}
+document.addEventListener('click', (e) => {
+  const c = e.target.closest('[data-key]'); if (c) return toggle(c.dataset.key);
+  const r = e.target.closest('[data-region]');
+  if (r) { touch(); const id = r.dataset.region; const i = state.regions.findIndex(([x]) => x === id);
+    if (i >= 0) { state.regions.splice(i, 1); for (const k of Object.keys(state.picked)) if (k.startsWith(id + '.')) delete state.picked[k]; }
+    else state.regions.push([id, REG[id].side]);
+    return render(); }
+  const s = e.target.closest('[data-side]');
+  if (s) { touch(); const [id, side] = s.dataset.side.split('.'); const i = state.regions.findIndex(([x]) => x === id);
+    if (i >= 0) state.regions[i][1] = side; else state.regions.push([id, side]); return render(); }
+  const u = e.target.closest('[data-usual]');
+  if (u) { touch(); const [rid, sec] = u.dataset.usual.split('.'); const n = REG[rid].sheets.length;
+    // items written on at least half of this area's sheets
+    for (const g of REG[rid][sec]) { if (g.one) continue; for (const it of g.items) if (it.s.length * 2 >= n) state.picked[`${rid}.${sec}.${it.id}`] = state.picked[`${rid}.${sec}.${it.id}`] || {}; }
+    return render(); }
+  if (e.target.id === 'ai-go') return askAI();
+});
+document.addEventListener('submit', (e) => {
+  const f = e.target.closest('[data-add]'); if (!f) return; e.preventDefault();
+  const v = f.querySelector('input').value.trim(); if (!v) return;
+  const k = f.dataset.add; const list = custom[k] || (custom[k] = []);
+  const id = 'c' + Date.now().toString(36); list.push({ id, t: v, s: [] }); store.set('custom', custom);
+  state.picked[`${k}.${id}`] = {}; touch(); render();
+});
+document.addEventListener('input', (e) => {
+  if (e.target.dataset.min) { state.picked[e.target.dataset.min].min = Math.max(1, Math.min(60, +e.target.value || 1)); touch(); renderPaper(); store.set('draft', state); }
+  if (e.target.id === 'follow') { state.follow = e.target.value; touch(); renderPaper(); store.set('draft', state); }
+  if (e.target.id === 'find') { findQ = e.target.value; renderResults(); }
+  if (e.target.id === 'patient') { state.patient = e.target.value; renderPaper(); store.set('draft', state); }
+  if (e.target.id === 'date') { state.date = e.target.value || today(); renderPaper(); store.set('draft', state); }
+});
+function say(msg) { $('#toast').textContent = msg; clearTimeout(say.t); say.t = setTimeout(() => { $('#toast').textContent = ''; }, 2600); }
+async function copySheet() {
+  const t = sheetText();
+  try { await navigator.clipboard.writeText(t); say('Sheet copied.'); }
+  catch { const r = document.createRange(); r.selectNodeContents($('#paper')); const sel = getSelection(); sel.removeAllRanges(); sel.addRange(r); say('Selected. Copy it with your device’s copy.'); }
+}
+function lastFor(name) { const n = (name || '').trim().toLowerCase(); if (!n) return null;
+  return sessions.filter((x) => (x.patient || '').trim().toLowerCase() === n).sort((a, b) => (b.date + b.ts).localeCompare(a.date + a.ts))[0] || null; }
+function saveSession() {
+  if (!Object.keys(state.picked).length && !state.asPrevious) return say('Pick something first.');
+  for (const k of Object.keys(state.picked)) usage[k] = (usage[k] || 0) + 1;
+  store.set('usage', usage);
+  sessions.push({ ...structuredClone(state), ts: Date.now().toString(36), example: false }); sessions = sessions.slice(-300); store.set('sessions', sessions);
+  say(`Saved for ${state.patient || 'this patient'} on this device.`); renderPaper();
+}
+$('#copy').onclick = copySheet; $('#copy2').onclick = copySheet;
+$('#save').onclick = saveSession; $('#save2').onclick = saveSession;
+$('#prev').onclick = () => { const last = lastFor(state.patient); if (!last) return;
+  const keep = { patient: state.patient, date: state.date };
+  state = { ...structuredClone(last), ...keep, example: false, asPrevious: false };
+  render(); say(`Loaded ${fmtDate(last.date)}. Change anything, or write “As previous”.`);
+  showAsPrev(); };
+function showAsPrev() { const t = $('#toast'); const b = document.createElement('button'); b.className = 'btn'; b.type = 'button'; b.textContent = 'Write “As previous” instead';
+  b.onclick = () => { state.asPrevious = true; renderPaper(); store.set('draft', state); }; t.append(' ', b); }
+$('#clear').onclick = () => { state = { patient: state.patient, date: today(), regions: [], picked: {}, follow: '' }; aiPicks = []; render(); say('Cleared.'); };
+
+// ---------------------------------------------------------------------------
+// AI: picks only from the catalog, by id. It never writes text and never diagnoses.
+// ---------------------------------------------------------------------------
+let sampleFn = null, downloadsFn = null, aiNote = 'Picks only from your own options. You decide.';
+async function askAI() {
+  const btn = $('#ai-go'); btn.disabled = true; aiNote = 'Thinking…'; $('#ai-note').textContent = aiNote;
+  const regs = state.regions.map(([r]) => r);
+  const lines = [];
+  for (const r of regs) for (const sec of ['exam', 'tx', 'rehab']) {
+    for (const g of groupsOf(r, sec)) for (const it of g.items) lines.push(`${r}.${sec}.${it.id} | ${REG[r].name} ${sec} | ${it.t}${g.one ? ' (pick one of group "' + g.g + '")' : ''}`);
+    if (sec === 'exam') for (const it of GENERAL_EXAM) lines.push(`${r}.exam.${it.id} | ${REG[r].name} exam | ${it.t}`);
+  }
+  for (const p of PRECAUTIONS) lines.push(`prec.${p.id} | precaution | ${p.t}`);
+  const chosen = Object.keys(state.picked).map((k) => `${k} | ${text(k)}`);
+  const prompt = `You help a physiotherapist fill in his own session sheet faster.
+Rules:
+- Choose ONLY from the CATALOG ids below. Never invent items and never reword them.
+- Do not diagnose and do not name any condition, disease or injury.
+- Using what is already selected, pick the catalog items a therapist at this clinic would usually also write on the same sheet.
+- At most 8 ids, none already selected. If nothing fits, return an empty list.
+Reply with only JSON like {"ids":["knee.rehab.slr"]}.
+
+Areas: ${state.regions.map(([r, s]) => `${REG[r].name} ${SIDE_TXT[s]}`).join(', ')}
+Already selected:
+${chosen.join('\n') || '(nothing yet)'}
+
+CATALOG (id | area section | text):
+${lines.join('\n')}`;
+  try {
+    const res = await sampleFn.json(prompt, { modelTier: 'quick' });
+    const valid = new Set(lines.map((l) => l.split(' | ')[0]));
+    aiPicks = (Array.isArray(res?.ids) ? res.ids : []).map(String).filter((k) => valid.has(k) && !state.picked[k]).slice(0, 8);
+    aiNote = aiPicks.length ? `${aiPicks.length} suggestions shown with a dashed purple border. Tap to add.` : 'No more suggestions for this selection.';
+  } catch (e) {
+    aiNote = e?.code === 'not_granted' || e?.code === 'sampling_disabled' ? 'AI is off for this account. Everything else works.'
+      : e?.code === 'rate_limited' ? 'Too many requests. Try again in a minute.' : 'The suggestion did not come through. Try again.';
+    if (e?.code === 'not_granted' || e?.code === 'sampling_disabled') sampleFn = null;
+  }
+  render();
+}
+
+// PDF of the sheet (English text, A4)
+async function downloadPdf() {
+  if (!window.jspdf || !downloadsFn) return;
+  const { jsPDF } = window.jspdf; const doc = new jsPDF({ unit: 'pt', format: 'a4' });
+  const W = doc.internal.pageSize.getWidth(), M = 48; let y = 56;
+  const s = sheet();
+  doc.setFont('helvetica', 'bold'); doc.setFontSize(15); doc.text('Session sheet', M, y);
+  doc.setFont('helvetica', 'normal'); doc.setFontSize(10); doc.text(`${fmtDate(state.date)}${state.patient ? '   ' + state.patient : ''}`, W - M, y, { align: 'right' }); y += 26;
+  const block = (h, arr, red = []) => {
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(11); doc.text(h, M, y); y += 16; doc.setFont('helvetica', 'normal'); doc.setFontSize(10.5);
+    const all = arr.length || red.length ? [...arr.map((t) => [t, false]), ...red.map((t) => [t, true])] : [['—', false]];
+    for (const [t, isRed] of all) { doc.setTextColor(isRed ? 180 : 20, isRed ? 35 : 36, isRed ? 24 : 34);
+      for (const ln of doc.splitTextToSize(t.replaceAll('⇒', '=>').replaceAll('→', '->').replaceAll('↓', 'Decreased'), W - 2 * M)) { if (y > 790) { doc.addPage(); y = 56; } doc.text(ln, M, y); y += 15; } }
+    doc.setTextColor(20, 36, 34); y += 10; };
+  if (state.asPrevious) block('Note', [`${fmtDate(state.date)} As previous.`]);
+  else { block('Examination:', s.exam); block('Medical treatment:', s.tx); block('Rehabilitation:', s.rehab, s.prec); if (s.follow.length) block('Follow up:', s.follow); }
+  const blob = doc.output('blob');
+  try { await downloadsFn.save({ filename: `sheet-${(state.patient || 'patient').replace(/[^\w-]+/g, '-')}-${state.date}.pdf`, data: blob }); say('PDF saved.'); }
+  catch (e) { say(e?.code === 'declined' ? 'Download cancelled.' : 'Download is not available here. Use Copy sheet.'); }
+}
+$('#pdf').onclick = downloadPdf;
+
+// boot
+$('#patient').value = state.patient || ''; $('#date').value = state.date;
+render();
+(async () => {
+  if (!window.claude?.use) return;
+  try { sampleFn = await window.claude.use('sample'); } catch { sampleFn = null; }
+  try { downloadsFn = await window.claude.use('downloads'); } catch { downloadsFn = null; }
+  $('#pdf').hidden = !(downloadsFn && window.jspdf);
+  renderAI();
+})();
+</script>
