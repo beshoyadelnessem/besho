@@ -111,6 +111,8 @@ input:focus-visible, select:focus-visible, textarea:focus-visible, button:focus-
 .btn.mic .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--warn); display: inline-block; }
 .btn.mic.on { border-color: var(--warn); color: var(--warn); }
 @media (prefers-reduced-motion: no-preference) { .btn.mic.on .dot { animation: pulse 1s infinite; } @keyframes pulse { 50% { opacity: .25; } } }
+.mic-help { font-size: 13px; background: var(--warn-soft); color: var(--ink); border: 1px solid var(--warn); border-radius: 8px; padding: 8px 12px; }
+.mic-help ol { margin: 4px 0 0; padding-inline-start: 18px; }
 .kbd-steps { margin: 0; padding-inline-start: 18px; font-size: 13px; display: grid; gap: 2px; }
 .heard { display: grid; gap: 8px; border-top: 1px dashed var(--line); padding-top: 10px; }
 .heard .miss { font-size: 12.5px; color: var(--warn); }
@@ -146,6 +148,7 @@ input:focus-visible, select:focus-visible, textarea:focus-visible, button:focus-
           <button class="btn mic" type="button" id="mic" hidden><span class="dot" aria-hidden="true"></span><span id="mic-label">Start talking</span></button>
           <span class="note" id="mic-note"></span>
         </div>
+        <div class="mic-help" id="mic-help" role="status" hidden></div>
         <ol class="kbd-steps" id="kbd-steps">
           <li>Tap the box below.</li>
           <li>On the keyboard, tap the microphone (Android: top right of the keyboard. iPhone: bottom right, next to the space bar).</li>
@@ -928,27 +931,92 @@ $('#match').onclick = runMatch;
 $('#say-clear').onclick = () => { $('#say').value = ''; heard = null; renderHeard(); };
 $('#say').addEventListener('keydown', (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); runMatch(); } });
 
-// Built-in speech recognition where the browser allows the microphone (e.g. Chrome outside Claude).
-// Inside the Claude viewer the microphone is blocked, so the keyboard mic is the way in.
+// Microphone, outside the Claude viewer only (there the frame always blocks it; the keyboard mic works).
+// 1) The browser's speech service (Chrome / Safari).  2) If that service is missing or refused,
+// record here and turn speech into text ON THIS DEVICE (Whisper tiny, English), no outside service.
+// Every failure says why and what to do.
+const WHISPER = { lib: 'https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.0.2', model: 'Xenova/whisper-tiny.en' };
 (() => {
-  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-  // Inside the Claude viewer the page is framed and the microphone is always blocked: keep to the keyboard mic.
+  const mic = $('#mic'), label = $('#mic-label'), note = $('#mic-note'), help = $('#mic-help');
   let framed = true; try { framed = window.self !== window.top; } catch { framed = true; }
-  if (!SR || framed) { $('#mic-note').textContent = framed ? 'Here the page cannot open the microphone itself. Your keyboard mic works:' : ''; return; }
-  const mic = $('#mic'); mic.hidden = false; $('#mic-note').textContent = 'Or use the keyboard mic:';
+  if (framed) { note.textContent = 'Here the page cannot open the microphone itself. Your keyboard mic works:'; return; }
+  const inApp = /FBAN|FBAV|Instagram|WhatsApp|; wv\)|Line\//i.test(navigator.userAgent);
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  let mode = SR ? 'service' : (navigator.mediaDevices?.getUserMedia && window.MediaRecorder ? 'device' : 'none');
+  if (mode === 'none') { note.textContent = 'This browser cannot record. Use the keyboard mic:'; return; }
+  mic.hidden = false; note.textContent = 'Or use the keyboard mic:';
+  const showHelp = (html) => { help.innerHTML = html; help.hidden = !html; };
+  const PERM = `<b>Chrome has the microphone off for this page.</b><ol>
+    ${inApp ? '<li>You opened the link inside another app. Tap ⋮ (top right) → <b>Open in Chrome</b>.</li>' : ''}
+    <li>Tap the icon at the left of the address bar → <b>Permissions</b> (or Site settings) → <b>Microphone</b> → <b>Allow</b>.</li>
+    <li>Android: Settings → Apps → Chrome → Permissions → Microphone → <b>Allow</b>.</li>
+    <li>Reload the page and tap the microphone button again.</li></ol>`;
+  const idle = () => { mic.classList.remove('on'); mic.disabled = false; label.textContent = mode === 'device' ? 'Record' : 'Start talking'; };
+  idle();
+
+  // --- 1) the browser's speech service
   let rec = null, base = '';
-  const stop = () => { rec?.stop(); };
-  mic.onclick = () => {
-    if (rec) return stop();
+  function startService() {
     rec = new SR(); rec.lang = 'en-US'; rec.continuous = true; rec.interimResults = true;
-    base = $('#say').value.trim(); mic.classList.add('on'); $('#mic-label').textContent = 'Listening… tap to stop';
+    base = $('#say').value.trim(); let failed = false;
+    mic.classList.add('on'); label.textContent = 'Listening… tap to stop'; showHelp('');
     rec.onresult = (ev) => { let fin = '', mid = '';
       for (let i = 0; i < ev.results.length; i++) (ev.results[i].isFinal ? (fin += ev.results[i][0].transcript + ' ') : (mid += ev.results[i][0].transcript));
       $('#say').value = [base, fin.trim(), mid].filter(Boolean).join(' '); };
-    rec.onerror = (ev) => { if (ev.error === 'not-allowed' || ev.error === 'service-not-allowed' || ev.error === 'audio-capture') {
-      mic.hidden = true; $('#mic-note').textContent = 'The microphone is blocked in this browser. Your keyboard mic works:'; } };
-    rec.onend = () => { rec = null; mic.classList.remove('on'); $('#mic-label').textContent = 'Start talking'; if ($('#say').value.trim()) runMatch(); };
-    try { rec.start(); } catch { rec = null; mic.hidden = true; }
+    rec.onerror = (ev) => {
+      failed = true;
+      if (ev.error === 'not-allowed') showHelp(PERM);
+      else if (ev.error === 'audio-capture') showHelp('<b>No microphone was found.</b> Check that no other app is using it, then try again.');
+      else if (ev.error === 'service-not-allowed' || ev.error === 'network' || ev.error === 'language-not-supported') {
+        // the speech service is not available here: switch to recording on this device
+        mode = 'device'; showHelp('This browser’s speech service is not available. Switched to <b>Record</b>: your voice is turned into text on this phone.');
+      } else if (ev.error !== 'no-speech' && ev.error !== 'aborted') showHelp(`The microphone stopped (${esc(ev.error)}). Try again.`);
+    };
+    rec.onend = () => { rec = null; idle(); if (!failed && $('#say').value.trim()) runMatch(); };
+    try { rec.start(); } catch { rec = null; mode = 'device'; idle(); }
+  }
+
+  // --- 2) record, then speech-to-text on this device
+  let recorder = null, chunks = [], stream = null, asr = null;
+  async function loadAsr() {
+    if (asr) return asr;
+    label.textContent = 'Getting voice model (first time only, ~40 MB)…';
+    const { pipeline } = await import(WHISPER.lib);
+    asr = await pipeline('automatic-speech-recognition', WHISPER.model);
+    return asr;
+  }
+  async function startDevice() {
+    showHelp('');
+    try { stream = await navigator.mediaDevices.getUserMedia({ audio: true }); }
+    catch (e) { idle(); return showHelp(e?.name === 'NotFoundError' ? '<b>No microphone was found.</b>' : PERM); }
+    loadAsr().catch(() => {});   // start downloading the model while he speaks
+    chunks = []; recorder = new MediaRecorder(stream);
+    recorder.ondataavailable = (e) => e.data.size && chunks.push(e.data);
+    recorder.onstop = transcribe;
+    recorder.start(); mic.classList.add('on'); label.textContent = 'Recording… tap to stop';
+  }
+  async function transcribe() {
+    stream?.getTracks().forEach((t) => t.stop()); recorder = null;
+    mic.classList.remove('on'); mic.disabled = true; label.textContent = 'Writing what you said…';
+    try {
+      const buf = await new Blob(chunks).arrayBuffer();
+      const ctx = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 16000 });
+      const audio = (await ctx.decodeAudioData(buf)).getChannelData(0); ctx.close?.();
+      const run = await loadAsr(); label.textContent = 'Writing what you said…';
+      const out = await run(audio, { chunk_length_s: 30 });
+      const text = String(out?.text || '').trim();
+      if (text) { $('#say').value = [$('#say').value.trim(), text].filter(Boolean).join(' '); runMatch(); }
+      else showHelp('Nothing was heard. Try again a little closer to the phone.');
+    } catch (e) {
+      showHelp('Could not turn the recording into text here (the voice model needs internet the first time). Use the keyboard mic for now.');
+    }
+    idle();
+  }
+
+  mic.onclick = () => {
+    if (rec) return rec.stop();
+    if (recorder) return recorder.stop();
+    return mode === 'service' ? startService() : startDevice();
   };
 })();
 

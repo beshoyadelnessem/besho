@@ -107,7 +107,10 @@ For each area, in the same progression, always ending with home exercises:
 - **Words that match nothing:** listed as "Not on your sheets, left out" and never added.
 - **Match the rest with AI:** asks the AI to map the leftover words to existing option ids only. Its picks show dashed and still need a tap.
 - **Ways in:**
-  - **Microphone:** "Start talking" uses the browser's speech recognition where the microphone is allowed (e.g. Chrome when the page is hosted on its own).
+  - **Microphone, outside the Claude viewer:** "Start talking" uses the browser's speech service.
+    - If that service is missing or refused, the button becomes "Record". The recording is turned into text on the phone itself (Whisper tiny English through transformers.js 3.0.2). The model, about 40 MB, downloads the first time and is cached after that.
+    - If Chrome has the mic switched off, the page shows the exact steps to allow it.
+    - If the link was opened inside another app (WhatsApp, the Claude app), the page says to open it in Chrome.
   - **Inside the Claude viewer:** the microphone is blocked, so the doctor taps the box and uses the mic on his phone keyboard. It works the same way.
 
 ## Storage
