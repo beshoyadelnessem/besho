@@ -151,7 +151,7 @@ input:focus-visible, select:focus-visible, textarea:focus-visible, button:focus-
         <div class="mic-help" id="mic-help" role="status" hidden></div>
         <ol class="kbd-steps" id="kbd-steps">
           <li>Tap the box below.</li>
-          <li>On the keyboard, tap the microphone (Android: top right of the keyboard. iPhone: bottom right, next to the space bar).</li>
+          <li>On the keyboard, tap the microphone (Android: top right of the keyboard. iPhone: bottom right, next to the space bar. No mic on iPhone? Settings → General → Keyboard → turn on <b>Enable Dictation</b>).</li>
           <li>Speak, then tap <b>Match to my sheets</b>.</li>
         </ol>
         <label class="f" for="say">What you said<textarea id="say" rows="3" placeholder="Speak or type here, then tap Match"></textarea></label>
@@ -965,14 +965,23 @@ const WHISPER = { lib: 'https://cdn.jsdelivr.net/npm/@huggingface/transformers@3
       $('#say').value = [base, fin.trim(), mid].filter(Boolean).join(' '); };
     rec.onerror = (ev) => {
       failed = true;
+      // iPhone does not always send "end" after an error: release the button now
+      const r = rec; rec = null; try { r?.abort(); } catch { /* already stopped */ }
       if (ev.error === 'not-allowed') showHelp(PERM);
       else if (ev.error === 'audio-capture') showHelp('<b>No microphone was found.</b> Check that no other app is using it, then try again.');
       else if (ev.error === 'service-not-allowed' || ev.error === 'network' || ev.error === 'language-not-supported') {
         // the speech service is not available here: switch to recording on this device
-        mode = 'device'; showHelp('This browser’s speech service is not available. Switched to <b>Record</b>: your voice is turned into text on this phone.');
+        mode = 'device'; showHelp('This browser’s speech service is not available, so the button is now <b>Record</b>: tap it, speak, tap again to stop. Your voice is turned into text on this phone.');
       } else if (ev.error !== 'no-speech' && ev.error !== 'aborted') showHelp(`The microphone stopped (${esc(ev.error)}). Try again.`);
+      idle();
     };
-    rec.onend = () => { rec = null; idle(); if (!failed && $('#say').value.trim()) runMatch(); };
+    rec.onend = () => { if (failed) return; rec = null; idle(); if ($('#say').value.trim()) runMatch(); };
+    let heardSomething = false;
+    rec.onaudiostart = rec.onresult ? (() => { heardSomething = true; }) : null;
+    const r0 = rec;
+    setTimeout(() => { if (rec === r0 && !heardSomething && !$('#say').value.trim().length) {
+      failed = true; rec = null; try { r0.abort(); } catch { /* ignore */ }
+      mode = 'device'; idle(); showHelp('The speech service did not answer, so the button is now <b>Record</b>: tap it, speak, tap again to stop.'); } }, 6000);
     try { rec.start(); } catch { rec = null; mode = 'device'; idle(); }
   }
 
