@@ -57,6 +57,7 @@ input:focus-visible, select:focus-visible, textarea:focus-visible, button:focus-
 .chip[aria-pressed="true"] { background: var(--pick); border-color: var(--pick); color: var(--on-accent); }
 .chip .src { font: 400 10.5px var(--f-mono); opacity: .7; white-space: nowrap; }
 .chip.ai { border-style: dashed; border-color: var(--ai); background: var(--ai-soft); }
+.chip.ai[aria-pressed="true"] { background: var(--ai); border-color: var(--ai); color: var(--on-accent); }
 .chip.tog { border-radius: 8px; }
 .chip.custom .src { font-style: italic; }
 .region-pick { display: flex; flex-wrap: wrap; gap: 8px; }
@@ -104,6 +105,13 @@ input:focus-visible, select:focus-visible, textarea:focus-visible, button:focus-
 .how { font-size: 12.5px; color: var(--muted); }
 .how summary { cursor: pointer; color: var(--ink); font-weight: 600; }
 .how ol { margin: 6px 0 0; padding-inline-start: 18px; display: grid; gap: 3px; }
+.voice { border-color: var(--accent); }
+.btn.mic .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--warn); display: inline-block; }
+.btn.mic.on { border-color: var(--warn); color: var(--warn); }
+@media (prefers-reduced-motion: no-preference) { .btn.mic.on .dot { animation: pulse 1s infinite; } @keyframes pulse { 50% { opacity: .25; } } }
+.heard { display: grid; gap: 8px; border-top: 1px dashed var(--line); padding-top: 10px; }
+.heard .miss { font-size: 12.5px; color: var(--warn); }
+.heard .miss span { font-family: var(--f-mono); }
 .dock { display: none; }
 @media (max-width: 900px) {
   .dock { display: flex; position: fixed; left: 0; right: 0; bottom: 0; z-index: 20; gap: 8px; background: var(--panel); border-top: 1px solid var(--line);
@@ -127,7 +135,23 @@ input:focus-visible, select:focus-visible, textarea:focus-visible, button:focus-
   </header>
 
   <div class="main">
-    <div class="steps" id="steps"></div>
+    <div class="steps">
+      <section class="step voice" id="voice" aria-labelledby="voice-h">
+        <h2 id="voice-h"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true" style="color:var(--accent)"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10a7 7 0 0 0 14 0M12 17v4M8 21h8"/></svg>Say it<span class="hint">speak what you would write</span></h2>
+        <p class="note">Example: <i>“Right knee. Russian, cryo, laser 10 minutes. Lymphatic drainage, quad sets, SLR, TKE, home exercises. Back: clamshell, TrA.”</i></p>
+        <div class="row-btns">
+          <button class="btn mic" type="button" id="mic" hidden><span class="dot" aria-hidden="true"></span><span id="mic-label">Start talking</span></button>
+          <span class="note" id="mic-note">Tap the box and use the mic on your phone keyboard.</span>
+        </div>
+        <label class="f" for="say">What you said<textarea id="say" rows="3" placeholder="Speak or type here, then tap Match"></textarea></label>
+        <div class="row-btns">
+          <button class="btn primary" type="button" id="match">Match to my sheets</button>
+          <button class="btn ghost" type="button" id="say-clear">Clear</button>
+        </div>
+        <div id="heard" aria-live="polite"></div>
+      </section>
+      <div class="steps" id="steps"></div>
+    </div>
 
     <aside class="sheet-col">
       <div class="paper" id="paper" aria-live="polite"></div>
@@ -698,6 +722,225 @@ async function downloadPdf() {
   catch (e) { say(e?.code === 'declined' ? 'Download cancelled.' : 'Download is not available here. Use Copy sheet.'); }
 }
 $('#pdf').onclick = downloadPdf;
+
+// ---------------------------------------------------------------------------
+// Voice: the doctor says what he would write; it is matched ONLY to the options
+// above (by these spoken names), shown for him to confirm, then added.
+// Words that match nothing are listed as "not on your sheets" and never added.
+// ---------------------------------------------------------------------------
+const SAY = {
+  cervical: {
+    'exam.ten': ['tenderness', 'tender'], 'exam.rotsb': ['limited rotation', 'rotation and side bending', 'limited rotation and side bending', 'rotation side bending'],
+    'exam.ext': ['limited extension', 'limited ext'], 'exam.ultt': ['ultt', 'upper limb tension', 'positive ultt'], 'exam.spur': ['spurling', 'positive spurling'],
+    'exam.tight': ['tightness', 'tight upper trap', 'tightness of upper trapezius', 'tight levator'], 'exam.dnf': ['weakness of deep neck', 'weak deep neck', 'weakness of deep neck flexors'],
+    'exam.grip': ['weakness of hand grip', 'weak hand grip', 'weak grip', 'scapular weakness'],
+    'tx.dip': ['dipole'], 'tx.arm': ['lateral arm', 'arm and forearm', 'two pole arm', '2 pole arm'], 'tx.laser': ['laser'], 'tx.pad': ['electrical pad', 'pad'],
+    'rehab.trac': ['traction'], 'rehab.met': ['met', 'muscle energy'], 'rehab.peri': ['periscapular', 'periscapular release'], 'rehab.subocc': ['suboccipital', 'suboccipital release'],
+    'rehab.c2': ['c2 snag', 'c 2 snag', 'c two snag'], 'rehab.bridge': ['bridging'], 'rehab.rnags': ['reverse nags', 'reverse nag', 'reverse snags'],
+    'rehab.c567': ['c5 6 7', 'c 5 6 7', 'c5 c6 c7', 'snag c5', 'c5 snag', 'lower cervical snag'], 'rehab.ndt': ['ndt', 'neurodynamic', 'nerve mobilization', 'median and radial', 'median radial'],
+    'rehab.mob': ['mobility', 'flexibility', 'mobility and flexibility'], 'rehab.dnfact': ['deep neck flexors', 'deep neck', 'semispinalis'],
+    'rehab.trap': ['lower trapezius', 'middle trapezius', 'middle and lower trapezius', 'serratus'], 'rehab.irer': ['ir er', 'internal and external rotation', 'rotator'],
+    'rehab.prox': ['proximal control'], 'rehab.home': ['home exercises', 'home exs', 'home program', 'home'] },
+  dorsolumbar: {
+    'exam.sij': ['sij', 'si joint', 'sacroiliac'], 'exam.core': ['weak core', 'core weakness', 'weakness of core'], 'exam.glute': ['weak glute', 'glute weakness', 'weakness of glute'],
+    'tx.dip': ['dipole'], 'tx.laser': ['laser'],
+    'rehab.tl': ['tl fascia', 'fascia release', 'thoracolumbar fascia'], 'rehab.prone': ['prone with pillow', 'prone extension', 'pillow below pelvis', 'extension to neutral'],
+    'rehab.k2c': ['knee to chest'], 'rehab.tra': ['tra', 'transversus', 'multifidus', 'core activation', 'activation'], 'rehab.clam': ['clamshell', 'clam shell', 'clams'],
+    'rehab.rhythm': ['rhythmic', 'rhythmic stabilization', 'spinal stabilization'], 'rehab.trunk': ['trunk motor control', 'trunk control', 'quadruped'],
+    'rehab.hipirer': ['hip ir er', 'hips ir er', 'hip rotation', 'hip internal external'], 'rehab.home': ['home exercises', 'home exs', 'home'] },
+  knee: {
+    'exam.edema': ['edema', 'oedema', 'swelling', 'effusion'], 'exam.flex': ['limited flexion', 'limited knee flexion', 'limited flex'], 'exam.ext': ['limited extension', 'limited ext', 'extension lag'],
+    'exam.weak': ['weak quads', 'quads weakness', 'weakness of quads', 'weak quadriceps', 'muscle weakness'],
+    'tx.rus': ['russian', 'surge', 'russian quads'], 'tx.cryo': ['cryo', 'cryotherapy', 'ice'], 'tx.laser': ['laser'],
+    'rehab.lymph': ['lymphatic', 'lymphatic drainage', 'drainage'], 'rehab.pf': ['pf mobilization', 'patellar mobilization', 'patella mobilization', 'patellofemoral'],
+    'rehab.aprom': ['auto passive', 'auto passive flexion'], 'rehab.mwm': ['mwm', 'mulligan', 'unloading mwm'],
+    'rehab.sets': ['quad sets', 'quads sets', 'hamstring sets', 'quad and hamstring sets', 'quads and hamstring sets', 'sets'], 'rehab.slr': ['slr', 'straight leg raise', 'straight leg'],
+    'rehab.tke': ['tke', 'terminal knee extension', 'terminal extension'], 'rehab.iso': ['isometric angular', 'angular isometric', 'isometric knee'],
+    'rehab.pfdf': ['theraband', 'pf df', 'plantar flexion', 'dorsiflexion'], 'rehab.legext': ['leg extension', 'leg ext'],
+    'rehab.abdadd': ['abd add', 'abduction adduction', 'abductor', 'adductor'], 'rehab.prox': ['proximal control'], 'rehab.prop': ['proprioception', 'proprioceptive', 'balance'],
+    'rehab.gait': ['gait', 'gait training', 'crutch'], 'rehab.home': ['home exercises', 'home exs', 'home'] },
+  hip: {
+    'exam.ant': ['anterior hip tenderness', 'tenderness of anterior hip', 'ant hip tenderness', 'tenderness'], 'exam.weak': ['weak glute', 'weakness of glute', 'glute weakness'],
+    'tx.hf': ['two pole', '2 pole', 'russian', 'rectus femoris'], 'tx.laser': ['laser'],
+    'rehab.unload': ['unloading mwm', 'unloading', 'mwm'], 'rehab.load': ['loading mwm', 'loading'], 'rehab.sets': ['quad sets', 'hamstring sets', 'sets'],
+    'rehab.slr': ['slr', 'straight leg raise'], 'rehab.tke': ['tke', 'terminal knee extension'], 'rehab.abdadd': ['abd add', 'abduction adduction', 'abductor', 'adductor'],
+    'rehab.prox': ['proximal control'], 'rehab.prop': ['proprioception', 'proprioceptive'], 'rehab.home': ['home exercises', 'home exs', 'home'] },
+  wrist: {
+    'exam.tfcc': ['tfcc tenderness', 'tenderness of tfcc', 'tender tfcc', 'tenderness'], 'exam.resist': ['pain with resistance', 'pain on resistance'], 'exam.hyper': ['hyperalgesia'],
+    'exam.edema': ['edema', 'oedema', 'swelling'], 'exam.rom': ['limited rom', 'limited range', 'stiffness'], 'exam.weak': ['weak grip', 'weakness of hand grip', 'grip weakness', 'weak hand grip'],
+    'tx.rtfcc': ['russian tfcc', '2 pole tfcc', 'two pole tfcc'], 'tx.rwrist': ['russian', 'russian wrist', '2 pole wrist', 'two pole wrist'], 'tx.rhand': ['surge', 'russian hand', 'surge hand'],
+    'tx.ice': ['ice massage', 'ice'], 'tx.ltfcc': ['laser tfcc', 'laser ulnar'], 'tx.lwrist': ['laser', 'laser wrist'], 'tx.lgraft': ['laser graft', 'laser grafted'],
+    'tx.pad': ['electrical pad', 'pad'], 'tx.phrep': ['phonophoresis', 'betaderm', 'phonophoresis repaired'], 'tx.phgraft': ['phonophoresis graft', 'phonophoresis grafted', 'betaderm graft'],
+    'rehab.scar': ['scar', 'scar mobilization'], 'rehab.prom': ['prom', 'passive rom', 'passive range'], 'rehab.aprom': ['auto passive'],
+    'rehab.pipdip': ['pip dip mobilization', 'pip and dip mobilization', 'grade 2 3'], 'rehab.romex': ['rom exercises', 'range of motion exercises', 'rom exs'],
+    'rehab.griprom': ['hand grip rom', 'grip rom', 'hand grip exercises'], 'rehab.gripap': ['grip auto passive', 'auto passive grip'], 'rehab.gripiso': ['isometric grip', 'isometric hand grip'],
+    'rehab.ot': ['ot', 'o t', 'occupational'], 'rehab.wiso': ['isometric wrist'], 'rehab.load': ['gradual loading', 'loading'], 'rehab.home': ['home exercises', 'home exs', 'home'] },
+  fingers: {
+    'exam.pipdip': ['tenderness of pip', 'pip dip tenderness', 'tender pip', 'tenderness'], 'exam.grip': ['weak grip', 'weakness of hand grip', 'grip weakness'],
+    'exam.gripw': ['weak grip and wrist', 'weak wrist flexion'], 'tx.rus': ['russian', '2 pole', 'two pole'],
+    'rehab.pip': ['pip mobilization'], 'rehab.mwm': ['mwm', 'mulligan'], 'rehab.grip': ['grip strengthening', 'hand grip strengthening', 'grip'],
+    'rehab.isopip': ['isometric pip'], 'rehab.dip': ['dip exercises', 'dip exs'], 'rehab.home': ['home exercises', 'home exs', 'home'] },
+};
+const SAY_GENERAL = { 'exam.prox': ['decreased proximal control', 'poor proximal control', 'reduced proximal control', 'less proximal control'],
+  'exam.prop': ['decreased proprioception', 'poor proprioception', 'reduced proprioception', 'less proprioception'] };
+const SAY_PREC = { 'prec.noresist': ['no resisted', 'no resistance', 'no resisted exercises', 'no manual'] };
+const REGION_SAY = { cervical: ['cervical', 'neck'], dorsolumbar: ['dorsolumbar', 'dorso lumbar', 'lumbar', 'lower back', 'low back', 'back'],
+  knee: ['knee'], hip: ['hips', 'hip'], wrist: ['wrist', 'hand'], fingers: ['finger', 'fingers', 'index'] };
+const SIDE_SAY = { right: 'R', left: 'L', both: 'B', bilateral: 'B', bilat: 'B' };
+const NUM = { one: 1, two: 2, three: 3, four: 4, five: 5, six: 6, seven: 7, eight: 8, nine: 9, ten: 10, twelve: 12, fifteen: 15, twenty: 20, 'twenty five': 25, thirty: 30 };
+const FILLER = new Set(['and', 'then', 'the', 'a', 'of', 'for', 'with', 'to', 'on', 'side', 'exercise', 'exercises', 'exs', 'min', 'minute', 'minutes', 'plus', 'also', 'okay', 'ok', 'um', 'uh', 'please', 'add', 'examination', 'exam', 'treatment', 'rehab', 'rehabilitation', 'program', 'patient', 'session']);
+
+function normSpeech(t) {
+  let x = ' ' + String(t).toLowerCase().replace(/[’']/g, '').replace(/[^a-z0-9]+/g, ' ') + ' ';
+  for (const [w, n] of Object.entries(NUM).sort((a, b) => b[0].length - a[0].length)) x = x.replaceAll(` ${w} `, ` ${n} `);
+  return x.replace(/\s+/g, ' ');
+}
+function findAll(hay, phrase) { const out = []; const p = ` ${phrase} `; let i = hay.indexOf(p);
+  while (i >= 0) { out.push([i + 1, i + 1 + phrase.length]); i = hay.indexOf(p, i + 1); } return out; }
+
+// Returns {picks:[{key,min?}], missing:[words], regions:[[id,side]]}
+function parseSpeech(raw) {
+  const t = normSpeech(raw);
+  const spans = [];
+  const addSpans = (rid, map) => { for (const [k, aliases] of Object.entries(map)) for (const a of aliases) for (const [s, e] of findAll(t, a))
+    spans.push({ s, e, key: k.startsWith('prec.') ? k : `${rid}.${k}`, rid: k.startsWith('prec.') ? 'prec' : rid }); };
+  for (const [rid, map] of Object.entries(SAY)) { addSpans(rid, map); addSpans(rid, SAY_GENERAL); }
+  addSpans('prec', SAY_PREC);
+  // the longest phrase wins where phrases overlap ("laser tfcc" over "laser")
+  const items = [];
+  for (const sp of spans.sort((a, b) => (b.e - b.s) - (a.e - a.s) || a.s - b.s)) {
+    const clash = items.find((x) => sp.s < x.e && x.s < sp.e);
+    if (!clash) items.push({ ...sp, keys: [sp] });
+    else if (clash.s === sp.s && clash.e === sp.e) clash.keys.push(sp);   // same words, another area
+  }
+  // area mentions outside matched phrases ("right knee", "back")
+  const marks = [];
+  for (const [rid, words] of Object.entries(REGION_SAY)) for (const w of words) for (const [s, e] of findAll(t, w)) {
+    if (items.some((x) => s < x.e && x.s < e)) continue;
+    const before = t.slice(0, s).trim().split(' ').pop();
+    const side = SIDE_SAY[before] || null;
+    marks.push({ s: side ? s - before.length - 1 : s, e, rid, side });
+  }
+  const events = [...items.map((x) => ({ ...x, kind: 'item' })), ...marks.map((m) => ({ ...m, kind: 'area' }))].sort((a, b) => a.s - b.s);
+  const selected = state.regions.map(([r]) => r);
+  let cur = selected.length === 1 ? selected[0] : null;
+  const regions = new Map(); const picks = new Map(); const ambiguous = [];
+  for (const ev of events) {
+    if (ev.kind === 'area') { cur = ev.rid; if (!regions.has(ev.rid) || ev.side) regions.set(ev.rid, ev.side || sideOf(ev.rid)); continue; }
+    const cands = ev.keys;
+    const inArea = (r) => cands.find((c) => c.rid === r);
+    let pick = cands.find((c) => c.rid === 'prec') || (cur && inArea(cur));
+    if (!pick && !cur) pick = selected.map(inArea).find(Boolean) || [...regions.keys()].map(inArea).find(Boolean) || (new Set(cands.map((c) => c.rid)).size === 1 ? cands[0] : null);
+    if (!pick && cur) pick = [...regions.keys(), ...selected].map(inArea).find(Boolean) || null;
+    if (!pick) { ambiguous.push(t.slice(ev.s, ev.e)); continue; }
+    if (pick.rid !== 'prec' && !regions.has(pick.rid)) regions.set(pick.rid, sideOf(pick.rid));
+    const entry = { key: pick.key };
+    const m = t.slice(ev.e, ev.e + 14).match(/^ (\d{1,2}) min/);
+    if (m && itemOf(pick.key)?.min != null) entry.min = +m[1];
+    picks.set(pick.key, entry);
+  }
+  // leftover words: not inside any phrase or area mention, and not filler
+  const covered = (i) => items.some((x) => i >= x.s && i < x.e) || marks.some((m) => i >= m.s && i < m.e);
+  const missing = []; let i = 0;
+  for (const w of t.split(' ')) { if (w && !covered(i) && !FILLER.has(w) && !SIDE_SAY[w] && !/^\d+$/.test(w)) missing.push(w); i += w.length + 1; }
+  return { picks: [...picks.values()], missing: [...new Set([...missing, ...ambiguous])], regions: [...regions.entries()] };
+}
+
+let heard = null;   // last parse shown for confirmation
+function renderHeard() {
+  const box = $('#heard');
+  if (!heard) { box.innerHTML = ''; return; }
+  const on = heard.picks.filter((p) => p.on !== false).length;
+  const label = (p) => { const it = itemOf(p.key); if (!it) return p.key; const rid = p.key.split('.')[0];
+    const side = rid === 'prec' ? '' : SIDE_TXT[(heard.regions.find(([r]) => r === rid) || [])[1] || sideOf(rid)];
+    return it.t.replaceAll('{S}', side).replaceAll('{min}', p.min ?? it.min); };
+  const area = (p) => p.key.startsWith('prec.') ? 'Precaution' : REG[p.key.split('.')[0]].name;
+  box.innerHTML = `<div class="heard">
+    ${heard.picks.length ? `<div class="grp-h"><b>Heard ${heard.picks.length}</b><span>tap to leave one out</span></div>
+      <div class="chips">${heard.picks.map((p, i) => `<button type="button" class="chip ${p.ai ? 'ai' : ''}" data-heard="${i}" aria-pressed="${p.on !== false}"><span class="src">${esc(area(p))}</span>${esc(label(p))}</button>`).join('')}</div>`
+      : '<p class="note">Nothing matched your sheets yet.</p>'}
+    ${heard.missing.length ? `<div class="miss">Not on your sheets, left out: <span>${heard.missing.map(esc).join(', ')}</span></div>` : ''}
+    <div class="row-btns">
+      ${heard.picks.length ? `<button class="btn primary" type="button" id="heard-add" ${on ? '' : 'disabled'}>Add ${on} to the sheet</button>` : ''}
+      ${sampleFn && heard.missing.length ? '<button class="btn ai" type="button" id="heard-ai">Match the rest with AI</button>' : ''}
+      <span class="note" id="heard-note"></span>
+    </div></div>`;
+}
+function runMatch() { const raw = $('#say').value.trim(); heard = raw ? parseSpeech(raw) : null; renderHeard(); }
+function addHeard() {
+  if (!heard) return;
+  touch();
+  for (const [rid, side] of heard.regions) { const r = state.regions.find(([x]) => x === rid); if (r) r[1] = side; else state.regions.push([rid, side]); }
+  for (const p of heard.picks) {
+    if (p.on === false) continue;
+    const [rid, sec, id] = p.key.split('.');
+    if (rid !== 'prec') { if (!state.regions.some(([x]) => x === rid)) state.regions.push([rid, sideOf(rid)]);
+      const g = groupsOf(rid, sec).find((x) => x.items.some((i) => i.id === id)); if (g?.one) for (const it of g.items) delete state.picked[`${rid}.${sec}.${it.id}`]; }
+    state.picked[p.key] = p.min ? { min: p.min } : (state.picked[p.key] || {});
+  }
+  const n = heard.picks.filter((p) => p.on !== false).length;
+  heard = null; $('#say').value = ''; renderHeard(); render(); say(`Added ${n} from what you said.`);
+}
+async function aiRest() {
+  const note = $('#heard-note'); const btn = $('#heard-ai'); btn.disabled = true; note.textContent = 'Thinking…';
+  const regs = [...new Set([...heard.regions.map(([r]) => r), ...state.regions.map(([r]) => r)])];
+  const use = regs.length ? regs : CATALOG.map((r) => r.id);
+  const lines = [];
+  for (const r of use) for (const sec of ['exam', 'tx', 'rehab']) for (const g of groupsOf(r, sec)) for (const it of g.items) lines.push(`${r}.${sec}.${it.id} | ${REG[r].name} | ${it.t}`);
+  for (const p of PRECAUTIONS) lines.push(`prec.${p.id} | precaution | ${p.t}`);
+  const prompt = `A physiotherapist dictated part of his session sheet. Map what he said to items of his own CATALOG.
+Rules:
+- Return ONLY ids from the CATALOG. Never invent, never reword, never add anything he did not say.
+- Do not diagnose and do not name any condition.
+- Only map words he actually said; if a word matches nothing, leave it out.
+Reply with only JSON like {"ids":["knee.rehab.slr"]}.
+
+He said: "${$('#say').value.trim().slice(0, 1500)}"
+Words not matched yet: ${heard.missing.join(', ')}
+
+CATALOG (id | area | text):
+${lines.join('\n')}`;
+  try {
+    const res = await sampleFn.json(prompt, { modelTier: 'quick' });
+    const valid = new Set(lines.map((l) => l.split(' | ')[0]));
+    const have = new Set(heard.picks.map((p) => p.key));
+    const add = (Array.isArray(res?.ids) ? res.ids : []).map(String).filter((k) => valid.has(k) && !have.has(k)).slice(0, 10);
+    heard.picks.push(...add.map((key) => ({ key, ai: true })));
+    renderHeard(); $('#heard-note').textContent = add.length ? `AI matched ${add.length} more (dashed). Check them before adding.` : 'AI found nothing else on your sheets.';
+  } catch (e) {
+    note.textContent = e?.code === 'not_granted' || e?.code === 'sampling_disabled' ? 'AI is off for this account.' : 'AI did not answer. Try again.'; btn.disabled = false;
+  }
+}
+document.addEventListener('click', (e) => {
+  const h = e.target.closest('[data-heard]'); if (h) { const p = heard.picks[+h.dataset.heard]; p.on = p.on === false; return renderHeard(); }
+  if (e.target.id === 'heard-add') return addHeard();
+  if (e.target.id === 'heard-ai') return aiRest();
+});
+$('#match').onclick = runMatch;
+$('#say-clear').onclick = () => { $('#say').value = ''; heard = null; renderHeard(); };
+$('#say').addEventListener('keydown', (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); runMatch(); } });
+
+// Built-in speech recognition where the browser allows the microphone (e.g. Chrome outside Claude).
+// Inside the Claude viewer the microphone is blocked, so the keyboard mic is the way in.
+(() => {
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SR) return;
+  const mic = $('#mic'); mic.hidden = false; $('#mic-note').textContent = 'Or use the mic on your phone keyboard.';
+  let rec = null, base = '';
+  const stop = () => { rec?.stop(); };
+  mic.onclick = () => {
+    if (rec) return stop();
+    rec = new SR(); rec.lang = 'en-US'; rec.continuous = true; rec.interimResults = true;
+    base = $('#say').value.trim(); mic.classList.add('on'); $('#mic-label').textContent = 'Listening… tap to stop';
+    rec.onresult = (ev) => { let fin = '', mid = '';
+      for (let i = 0; i < ev.results.length; i++) (ev.results[i].isFinal ? (fin += ev.results[i][0].transcript + ' ') : (mid += ev.results[i][0].transcript));
+      $('#say').value = [base, fin.trim(), mid].filter(Boolean).join(' '); };
+    rec.onerror = (ev) => { if (ev.error === 'not-allowed' || ev.error === 'service-not-allowed' || ev.error === 'audio-capture') {
+      mic.hidden = true; $('#mic-note').textContent = 'The microphone is blocked here. Tap the box and use the mic on your phone keyboard.'; } };
+    rec.onend = () => { rec = null; mic.classList.remove('on'); $('#mic-label').textContent = 'Start talking'; if ($('#say').value.trim()) runMatch(); };
+    try { rec.start(); } catch { rec = null; mic.hidden = true; }
+  };
+})();
 
 // boot
 $('#patient').value = state.patient || ''; $('#date').value = state.date;

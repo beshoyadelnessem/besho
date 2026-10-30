@@ -98,6 +98,18 @@ For each area, in the same progression, always ending with home exercises:
 - **Find:** search across everything the doctor writes ("slr", "clamshell", "snag").
 - **Add your own:** adds a new option under an area. It is saved, and frequently used options move to the front.
 
+## Voice ("Say it")
+- **How to dictate:** the doctor says what he would write, in any order. For example: "Right knee. Russian, cryo, laser 10 minutes. Lymphatic drainage, quad sets, SLR, TKE, home exercises. Back: clamshell, TrA."
+- **Matching:** words are matched only to the options above, by the spoken names in `SAY` in `index.html`.
+- **Areas and sides:** said like "right knee", "left wrist", "neck", "back" or "both hips". The area switches mid-sentence when he names a new one.
+- **Minutes:** "laser 10 minutes" changes the minutes.
+- **Confirming:** what was heard appears as chips to confirm. The doctor can leave any out before "Add to the sheet".
+- **Words that match nothing:** listed as "Not on your sheets, left out" and never added.
+- **Match the rest with AI:** asks the AI to map the leftover words to existing option ids only. Its picks show dashed and still need a tap.
+- **Ways in:**
+  - **Microphone:** "Start talking" uses the browser's speech recognition where the microphone is allowed (e.g. Chrome when the page is hosted on its own).
+  - **Inside the Claude viewer:** the microphone is blocked, so the doctor taps the box and uses the mic on his phone keyboard. It works the same way.
+
 ## Storage
 - **Where:** sessions, the doctor's own options and usage counts stay in this browser on this device only (localStorage). Nothing is sent anywhere.
 - **What's left out:** there are no accounts and no sync between devices. When this joins the clinic app, it should move to the clinic database.
