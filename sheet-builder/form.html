@@ -368,12 +368,41 @@ function openEditor(sec, opts = {}) {
   $('#ed-title').textContent = s.name; $('#ed-mic').hidden = false; $('#ed-clear').hidden = false;
   $('#ed-body').innerHTML = sec === 'date' ? `<input id="ed-text" value="${esc(doc.secs.date.text)}" autocomplete="off">` : `<textarea id="ed-text" placeholder="Speak or type ${esc(s.name.toLowerCase())}…">${esc(doc.secs[sec].text)}</textarea>`;
   $('#ed-note').textContent = opts.note || (voice.framed ? 'To speak: tap the box, then the microphone on your keyboard.' : '');
-  const t = $('#ed-text'); t.oninput = () => { doc.secs[sec].text = t.value; render(); };
+  if (sec !== 'date') $('#ed-body').insertAdjacentHTML('beforeend', `
+    <div class="row" style="margin-top:8px">
+      <button class="btn" type="button" id="pt-fix">Fix medical words</button>
+      <label class="note" style="display:inline-flex;gap:6px;align-items:center"><input type="checkbox" id="pt-short" ${ptShort ? 'checked' : ''} style="width:auto"> Write like my sheets (exs, ext, (R) knee, min)</label>
+    </div>
+    <details class="note" style="margin-top:6px"><summary>A word keeps coming out wrong?</summary>
+      <div class="row" style="margin-top:6px"><input id="pt-heard" placeholder="It wrote…" style="flex:1;min-width:120px"><input id="pt-should" placeholder="It should be…" style="flex:1;min-width:120px"><button class="btn" type="button" id="pt-add">Save</button></div>
+      <div id="pt-list" class="note"></div></details>
+    <div id="pt-sugg" class="row" style="margin-top:6px"></div>`), listFixes(), showSugg();
+  const t = $('#ed-text'); t.oninput = () => { doc.secs[sec].text = t.value; render(); suggSoon(); };
   if (opts.focus !== false) setTimeout(() => { t.focus(); t.setSelectionRange?.(t.value.length, t.value.length); }, 30);
   syncEdMic();
 }
 function closeEditor() { if (voice.active) voice.stop(); editing = null; $('#editor').hidden = true; }
-$('#ed-done').onclick = closeEditor;
+function applyFix() { if (!editing || editing === 'header' || editing === 'foot' || editing === 'date') return; const t = $('#ed-text'); const fixed = ptFix(doc.secs[editing].text); if (fixed !== doc.secs[editing].text) { doc.secs[editing].text = fixed; if (t) t.value = fixed; render(); return true; } }
+function showSugg() {
+  const el = $('#pt-sugg'); if (!el || !editing || !doc.secs[editing]) return;
+  const list = ptSuggest(doc.secs[editing].text);
+  el.innerHTML = list.length ? '<span class="note">Did you mean:</span> ' + list.map((x, i) => `<button class="btn" type="button" data-sugg="${i}" data-from="${esc(x.from)}" data-to="${esc(x.to)}">${esc(x.from)} → <b>${esc(x.to)}</b></button>`).join(' ') : '';
+}
+let suggT; function suggSoon() { clearTimeout(suggT); suggT = setTimeout(showSugg, 500); }
+function listFixes() { const el = $('#pt-list'); if (el) el.innerHTML = ptUser.length ? 'Saved: ' + ptUser.map((f, i) => `${esc(f.heard)} → ${esc(f.should)} <button class="btn" type="button" data-unfix="${i}" style="padding:0 6px">×</button>`).join(' · ') : ''; }
+$('#ed-body').addEventListener('click', (e) => {
+  if (e.target.id === 'pt-fix') { say(applyFix() ? 'Medical words fixed.' : 'Nothing to fix.'); }
+  if (e.target.id === 'pt-add') { const h = $('#pt-heard').value.trim(), w = $('#pt-should').value.trim(); if (!h || !w) return;
+    ptUser.push({ heard: h, should: w }); store.set('fixes', ptUser); $('#pt-heard').value = ''; $('#pt-should').value = ''; listFixes(); applyFix(); say(`Saved: “${h}” will be written “${w}”.`); }
+  const sg = e.target.closest('[data-sugg]');
+  if (sg) { const from = sg.dataset.from, to = sg.dataset.to; const st = doc.secs[editing];
+    st.text = st.text.replace(new RegExp(`\\b${escRe(from)}\\b`, 'gi'), to); const t = $('#ed-text'); if (t) t.value = st.text;
+    if (!ptUser.some((f) => f.heard.toLowerCase() === from.toLowerCase())) { ptUser.push({ heard: from, should: to }); store.set('fixes', ptUser); listFixes(); }
+    render(); showSugg(); say(`Fixed, and remembered: “${from}” → “${to}”.`); return; }
+  if (e.target.dataset.unfix != null) { ptUser.splice(+e.target.dataset.unfix, 1); store.set('fixes', ptUser); listFixes(); }
+});
+$('#ed-body').addEventListener('change', (e) => { if (e.target.id === 'pt-short') { ptShort = e.target.checked; store.set('ptShort', ptShort); } });
+$('#ed-done').onclick = () => { applyFix(); closeEditor(); };
 $('#ed-clear').onclick = () => { if (!editing) return;
   if (editing === 'foot') { doc.foot = { title: 'Physician', name: '', date: '', time: '', ink: [] }; doc.order = doc.order.filter((s) => s !== 'foot'); closeEditor(); render(); return refreshUndo(); }
   const st = doc.secs[editing]; st.text = ''; st.ink = []; st.extra = 0; doc.order = doc.order.filter((s) => s !== editing); const t = $('#ed-text'); if (t) t.value = ''; render(); refreshUndo(); };
@@ -403,13 +432,138 @@ document.addEventListener('click', (e) => {
 // Voice into one part of the sheet. Outside the Claude viewer only: the browser's speech
 // service, or, when that is missing or refused, recording + speech-to-text on this device.
 // ---------------------------------------------------------------------------
+// ---------------------------------------------------------------------------
+// Physiotherapy terminology for dictation. Speech recognition does not know the
+// clinic's words, so what it hears is corrected here, in three steps:
+//  1) common mishearings -> the term (taken from the clinic's own sheets),
+//  2) optional: the doctor's way of writing (exs, ext, (R) knee, min, /),
+//  3) the doctor's own corrections, saved on this device.
+// ---------------------------------------------------------------------------
+const PT_FIX = [
+  // electrotherapy & modalities
+  [/\b(?:die|dye|di|dai)[ -]?poles?\b/gi, 'Dipole'], [/\b(?:two|2|to|too)[ -](?:pole|poles|poll|polls|paul)\b/gi, '2 pole'],
+  [/\brussian(?: current)?\b/gi, 'Russian'], [/\b(?:kyro|kryo|crayo|cryo)(?:therapy)?\b/gi, 'Cryo'], [/\bcairo\b(?=\s+(?:\d|for|on|to|over|at))/gi, 'Cryo'], [/\blazer\b/gi, 'laser'],
+  [/\b(?:phono[ -]?for[ -]?(?:isis|esis|reses)|phono[ -]phoresis|phonophoreses)\b/gi, 'phonophoresis'], [/\b(?:beta|better|bita)[ -]?(?:derm|dirt|term)\b/gi, 'Betaderm'],
+  [/\bt e n s\b/gi, 'TENS'], [/\binter[ -]ferential\b/gi, 'interferential'], [/\bultra[ -]sound\b/gi, 'ultrasound'], [/\belectrical? pads?\b/gi, 'electrical pad'],
+  [/\bice[ -]massage\b/gi, 'ice massage'], [/\bsurge(?:s)?\b/gi, 'surge'],
+  // Mulligan & manual therapy
+  [/\b(?:m[ .]?w[ .]?m)\b/gi, 'MWM'], [/\b(?:milligan|mulligen|mulligan's)\b/gi, 'Mulligan'], [/\b(?:snack|snag)s\b/gi, 'SNAGs'], [/\b(?:snack|snag)\b/gi, 'SNAG'],
+  [/\b(?:reverse )?(?:knags|naks|nags|nag)\b/gi, (m) => m.toLowerCase().startsWith('reverse') ? 'reverse NAGS' : 'NAGS'],
+  [/\b(?:see|sea|c)[ -]?(?:two|2|to)\b(?= (?:snag|SNAG))/gi, 'C2'], [/\bc[ -]?5[ -,]*(?:c[ -]?)?6[ -,]*(?:c[ -]?)?7\b/gi, 'C5-6-7'],
+  [/\b(?:m[ .]e[ .]t)\b/gi, 'MET'], [/\bmuscle energy techniques?\b/gi, 'MET'], [/\b(?:n[ .]?d[ .]?t)\b/gi, 'NDT'], [/\bneural[ -]dynamics?\b/gi, 'neurodynamic'],
+  [/\b(?:perry|peri|para|pery)[ -]scapular\b/gi, 'periscapular'], [/\bsub[ -]occipital\b/gi, 'suboccipital'], [/\b(?:teal|tl|t l|t\.l\.)[ -]?fascia\b/gi, 'TL fascia'],
+  [/\bthoraco[ -]?lumbar fascia\b/gi, 'TL fascia'], [/\b(?:p[ .]?f)[ -]mobili[sz]ation\b/gi, 'PF mobilization'], [/\bscar[ -]mobili[sz]ation\b/gi, 'scar mobilization'],
+  [/\blymph[ -]?attic\b/gi, 'lymphatic'], [/\btraction\b/gi, 'traction'],
+  // anatomy & muscles
+  [/\b(?:quads?|quadriceps)\b/gi, 'quads'], [/(?<=\b(?:for|of|weak|weakness of|strengthening|russian for)\s)(?:quarts|quotes)\b|\b(?:quarts|quotes)\b(?=\s+(?:and|&|sets|set|strengthening|hamstring))/gi, 'quads'], [/\bham[ -]?strings?\b/gi, 'hamstring'], [/\b(?:glue|blue|gluteal|gluteus|glutes?)[ -](?:max|maximus)\b/gi, 'glute max'],
+  [/\b(?:glue|blue|gluteal|gluteus|glutes?)[ -](?:med|medius|mid)\b/gi, 'glute med'], [/\bsemi[ -]?spinal(?:is| is|es)\b/gi, 'semispinalis'],
+  [/\b(?:scaling|scalings|scalenes?)\b/gi, 'scalene'], [/\belevator scapulae?\b/gi, 'levator scapulae'], [/\bmulti[ -]?(?:fitness|fidous|fidus|fides)\b/gi, 'multifidus'],
+  [/\b(?:t r a|t\.r\.a\.?|tra)\b/gi, 'TrA'], [/\btransverse abdominis\b/gi, 'transversus abdominis'], [/\bcervico?[ -]dorsal\b|\bcervical dorsal\b|\bservice dorsal\b/gi, 'cervicodorsal'],
+  [/\bdorso?[ -]lumbar\b|\bdorsal lumbar\b/gi, 'dorsolumbar'], [/\b(?:t[ .]?f[ .]?c[ .]?c)\b/gi, 'TFCC'], [/\bp[ .]i[ .]p\b/gi, 'PIP'], [/\bd[ .]i[ .]p\b/gi, 'DIP'], [/\bm[ .]c[ .]p\b/gi, 'MCP'],
+  [/\b(?:serratus|serrated) anterior\b/gi, 'serratus ant.'], [/\brectus femur(?:is)?\b/gi, 'rectus femoris'], [/\bpatella femoral\b/gi, 'patellofemoral'],
+  // examination
+  [/\b(?:a dima|adema|edima|oedema|edema)\b/gi, 'edema'], [/\bhyper[ -]?(?:algae|algesia|al jesia|algeria)\b/gi, 'hyperalgesia'], [/\b(?:u[ .]?l[ .]?t[ .]?t)\b/gi, 'ULTT'],
+  [/\b(?:sperling|spelling|spurling)(?:'s)? test\b/gi, 'Spurling test'], [/\b(?:s[ .]?i[ .]?j)\b/gi, 'SIJ'], [/\bpositive\b(?= (?:ULTT|Spurling|SIJ))/gi, '+ve'], [/\bnegative\b(?= (?:ULTT|Spurling|SIJ))/gi, '-ve'],
+  [/\b(?:proprio|proper|prop)[ -]?(?:section|reception|ception)\b/gi, 'proprioception'], [/\btender ness\b/gi, 'tenderness'],
+  // exercises
+  [/\b(?:s[ .]?l[ .]?r|as l r|esl r)\b/gi, 'SLR'], [/\bstraight[ -]leg[ -]raises?\b/gi, 'SLR'], [/\b(?:t[ .]?k[ .]?e)\b/gi, 'TKE'], [/\bterminal knee extensions?\b/gi, 'terminal knee extension'],
+  [/\b(?:o[ .]?k[ .]?c|okay see|ok see)\b/gi, 'OKC'], [/\b(?:c[ .]?k[ .]?c|see kay see|see k c|c k see)\b/gi, 'CKC'], [/\bopen kinetic chain\b/gi, 'OKC'], [/\bclosed kinetic chain\b/gi, 'CKC'],
+  [/\bclam[ -]shells?\b/gi, 'clamshell'], [/\b(?:quadrupled|quad repeat|quadra ped)\b/gi, 'quadruped'], [/\b(?:soup pine|su pine)\b/gi, 'supine'], [/\bprawn\b/gi, 'prone'],
+  [/\b(?:thera|terra|there a|tara)[ -]?band\b/gi, 'theraband'], [/\b(?:ice|eyes)[ -]?o?metric\b/gi, 'isometric'], [/\bcon[ -]centric\b/gi, 'concentric'], [/\bec[ -]centric\b/gi, 'eccentric'],
+  [/\bdorsal flexion\b|\bdorsi[ -]flexion\b/gi, 'dorsiflexion'], [/\bplanter flexion\b/gi, 'plantar flexion'], [/\b(?:p[ .]?rom|p r o m)\b/gi, 'PROM'], [/\b(?:a[ .]?rom|a r o m)\b/gi, 'AROM'], [/\br o m\b/gi, 'ROM'],
+  [/\b(?:i[ .]?r)(?:,? and |, | )(?:e[ .]?r)\b/gi, 'IR, ER'], [/\babduction(?:,? and | )adduction\b|\bab add\b|\babd add\b/gi, 'abd, add'],
+  [/\bgas(?:tro)?[ -]?(?:truck|track|tro)?[ -]?(?:nemesis|nemius|nemeus|knemius|cnemius)\b/gi, 'gastrocnemius'], [/\b(?:pyri|peri|piri)[ -]?formis\b/gi, 'piriformis'],
+  [/\b(?:super|supra)[ -]?spinatus\b/gi, 'supraspinatus'], [/\binfra[ -]spinatus\b/gi, 'infraspinatus'], [/\bilio?[ -]?(?:so as|so us|psoas)\b/gi, 'iliopsoas'],
+  [/\bsterno[ -]?cleido[ -]?mastoid\b/gi, 'sternocleidomastoid'], [/\btibialis anterior\b/gi, 'tibialis anterior'], [/\b(?:rhomboids?|rhombus)\b(?= (?:and|&|muscle|strength))/gi, 'rhomboids'],
+  [/\b(?:lack|lock)[ -]?man(?:'s)?(?= test)/gi, 'Lachman'], [/\b(?:mac|mc)[ -]?murray(?:'s)?\b/gi, 'McMurray'], [/\b(?:fiber|faber|fabere)(?= test)/gi, 'FABER'],
+  [/\b(?:fadir|fader)(?= test)/gi, 'FADIR'], [/\b(?:falen|phalen|fallen)(?:'s)?(?= test| sign)/gi, 'Phalen'], [/\b(?:tinel|tinnel|tunnel)(?:'s)?(?= sign| test)/gi, 'Tinel'],
+  [/\b(?:finkel ?stein|finkelstein)(?:'s)?\b/gi, 'Finkelstein'], [/\b(?:thomas)(?= test)/gi, 'Thomas'], [/\bslump test\b/gi, 'slump test'], [/\bempty can\b/gi, 'empty can'],
+  [/\bh[ .]e[ .]p\b|\bhome exercise program\b/gi, 'HEP'], [/\bs[ .]a[ .]q\b|\bshort arc quads?\b/gi, 'SAQ'], [/\bl[ .]a[ .]q\b|\blong arc quads?\b/gi, 'LAQ'],
+  [/\bn[ .]w[ .]b\b|\bnon[ -]weight bearing\b/gi, 'NWB'], [/\bp[ .]w[ .]b\b|\bpartial weight bearing\b/gi, 'PWB'], [/\bf[ .]w[ .]b\b|\bfull weight bearing\b/gi, 'FWB'],
+  [/\bweight bearing as tolerated\b|\bw[ .]b[ .]a[ .]t\b/gi, 'WBAT'], [/\bp[ .]n[ .]f\b/gi, 'PNF'], [/\bs[ .]t[ .]m\b|\bsoft tissue mobili[sz]ation\b/gi, 'STM'],
+  [/\bm[ .]f[ .]r\b|\bmyo[ -]?fascial release\b/gi, 'MFR'], [/\bi[ .]t[ .]b\b|\bi t band\b|\bilio[ -]?tibial band\b/gi, 'ITB'], [/\bt[ .]f[ .]l\b/gi, 'TFL'],
+  [/\ba[ .]c[ .]l\b/gi, 'ACL'], [/\bp[ .]c[ .]l\b/gi, 'PCL'], [/\bm[ .]c[ .]l\b/gi, 'MCL'], [/\bm[ .]m[ .]t\b|\bmanual muscle test(?:ing)?\b/gi, 'MMT'],
+  [/\bn[ .]m[ .]e[ .]s\b/gi, 'NMES'], [/\bi[ .]f[ .]c\b/gi, 'IFC'], [/\bc[ .]p[ .]m\b/gi, 'CPM'], [/\ba[ .]d[ .]l'?s?\b/gi, 'ADL'], [/\bw[ .]n[ .]l\b/gi, 'WNL'],
+  [/\b(?:pare|para)[ -]?(?:sthesia|esthesia|thesia)s?\b/gi, 'paresthesia'], [/\b(?:allo|a lo)[ -]?dynia\b/gi, 'allodynia'], [/\bcrepit(?:ation|us)\b/gi, (m) => m.toLowerCase()],
+  [/\bscapular dis[ -]?kinesis\b/gi, 'scapular dyskinesis'], [/\bplantar[ -]?fasci(?:a|itis)\b/gi, (m) => m.toLowerCase()], [/\b(?:e|a)version\b(?= (?:and|&) inversion)/gi, 'eversion'],
+  [/\b(?:o[ .]t)(?= (?:hand|ex))/gi, 'O.T.'], [/\bauto[ -]?passive\b/gi, 'auto-passive'], [/\bk[ -]?tape\b|\bkinesio[ -]?tap(?:e|ing)\b/gi, 'kinesio taping'],
+];
+const PT_SHORT = [   // the doctor's way of writing (optional)
+  [/\b(?:the )?right (?=(?:knee|hip|ankle|wrist|hand|shoulder|elbow|index|leg|arm|foot|side|quads|lower limb|upper limb)\b)/gi, '(R) '],
+  [/\b(?:the )?left (?=(?:knee|hip|ankle|wrist|hand|shoulder|elbow|index|leg|arm|foot|side|quads|lower limb|upper limb)\b)/gi, '(L) '],
+  [/\bbilateral(?:ly)?\b/gi, 'bilat.'], [/\bexercises\b/gi, 'exs'], [/\bexercise\b/gi, 'ex'], [/\bextension\b/gi, 'ext'], [/\bflexion\b/gi, 'flex'],
+  [/\b(?:minutes|minute|mins)\b/gi, 'min'], [/\bupper trap(?:ezius)?\b/gi, 'U.T.'], [/\bhamstrings?\b/gi, 'hamst'], [/\bdegrees?\b/gi, '°'], [/(\d) °/g, '$1°'],
+  [/\bstrengthening\b/gi, 'strengthening'], [/\bjunction\b/gi, 'junct.'], [/\banterior\b/gi, 'ant.'], [/\bposterior\b/gi, 'post.'],
+  [/\s*\b(?:slash|forward slash)\b\s*/gi, ' / '], [/\s*\b(?:new line|next line)\b\s*/gi, '\n'], [/\s*\b(?:full stop|period)\b/gi, '.'], [/\s*\bcomma\b/gi, ','], [/\bplus\b/gi, '+'],
+];
+// Terms the doctor may say (the clinic's sheets + common physiotherapy vocabulary), for "did you mean" suggestions.
+const PT_TERMS = ['Dipole', 'Russian', 'Cryo', 'laser', 'phonophoresis', 'Betaderm', 'interferential', 'ultrasound', 'TENS', 'NMES', 'MWM', 'Mulligan', 'SNAG', 'NAGS', 'MET', 'NDT',
+  'neurodynamic', 'periscapular', 'suboccipital', 'cervicodorsal', 'dorsolumbar', 'lumbar', 'cervical', 'thoracic', 'mobilization', 'manipulation', 'traction', 'lymphatic', 'drainage',
+  'quads', 'quadriceps', 'hamstring', 'gastrocnemius', 'soleus', 'tibialis anterior', 'glute max', 'glute med', 'gluteus maximus', 'gluteus medius', 'piriformis', 'iliopsoas',
+  'adductors', 'abductors', 'rotator cuff', 'supraspinatus', 'infraspinatus', 'subscapularis', 'teres minor', 'deltoid', 'trapezius', 'rhomboids', 'serratus anterior',
+  'levator scapulae', 'sternocleidomastoid', 'scalene', 'semispinalis', 'multifidus', 'erector spinae', 'transversus abdominis', 'diaphragm', 'patella', 'patellofemoral',
+  'meniscus', 'ligament', 'tendon', 'tendinopathy', 'fascia', 'TFCC', 'ulnar', 'radial', 'median', 'carpal', 'metacarpal', 'phalanx', 'scapula', 'clavicle', 'humerus',
+  'edema', 'effusion', 'hyperalgesia', 'allodynia', 'paresthesia', 'numbness', 'tenderness', 'crepitus', 'stiffness', 'spasm', 'weakness', 'proprioception', 'kinesthesia',
+  'dorsiflexion', 'plantar flexion', 'eversion', 'inversion', 'pronation', 'supination', 'abduction', 'adduction', 'extension', 'flexion', 'rotation', 'side bending', 'circumduction',
+  'isometric', 'isotonic', 'concentric', 'eccentric', 'stabilization', 'rhythmic', 'clamshell', 'quadruped', 'supine', 'prone', 'theraband', 'proprioceptive', 'plyometric',
+  'semispinalis', 'ULTT', 'Spurling', 'Lachman', 'McMurray', 'FABER', 'FADIR', 'Phalen', 'Tinel', 'Finkelstein', 'Thomas test', 'slump test', 'empty can', 'Hawkins Kennedy',
+  'scapular dyskinesis', 'SLR', 'TKE', 'OKC', 'CKC', 'PROM', 'AROM', 'ROM', 'HEP', 'SAQ', 'LAQ', 'NWB', 'PWB', 'FWB', 'WBAT', 'PNF', 'STM', 'MFR', 'ITB', 'TFL', 'ACL', 'PCL', 'MCL', 'MMT'];
+const PT_VOCAB = ['dipole', '2 pole', 'russian', 'cryo', 'laser', 'phonophoresis', 'betaderm', 'mwm', 'mulligan', 'snag', 'nags', 'met', 'ndt', 'periscapular', 'suboccipital',
+  'tl fascia', 'pf mobilization', 'lymphatic', 'quads', 'hamst', 'glute', 'semispinalis', 'scalene', 'levator', 'multifidus', 'tra', 'cervicodorsal', 'dorsolumbar', 'tfcc',
+  'pip', 'dip', 'edema', 'hyperalgesia', 'ultt', 'spurling', 'proprioception', 'slr', 'tke', 'okc', 'ckc', 'clamshell', 'quadruped', 'supine', 'prone', 'theraband',
+  'isometric', 'concentric', 'prom', 'rom', 'ir, er', 'abd, add', 'traction', 'mobilization', 'stabilization', 'tenderness', 'limited', 'weakness'];
+let ptShort = store.get('ptShort', true);
+const ptUser = store.get('fixes', []);   // [{heard, should}]
+const escRe = (t) => t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+function ptFix(text) {
+  let t = String(text || '');
+  for (const [re, to] of PT_FIX) t = t.replace(re, to);
+  if (ptShort) for (const [re, to] of PT_SHORT) t = t.replace(re, to);
+  for (const f of ptUser) if (f.heard) t = t.replace(new RegExp(`\\b${escRe(f.heard)}\\b`, 'gi'), f.should);
+  return t.replace(/[ \t]+/g, ' ').replace(/ ([,.])/g, '$1').replace(/\/ \//g, '/').trim();
+}
+// When the speech service offers several guesses, keep the one with the most clinic words.
+// scored on the raw guess, so a guess that already has the right words wins over one that only gets fixed later
+function ptScore(t) { const x = ` ${String(t).toLowerCase()} `; return PT_VOCAB.reduce((n, w) => n + (x.includes(` ${w}`) ? 1 : 0), 0); }
+const COMMON = new Set('the and for with from then this that have has was were are with into onto over under after before right left both side knee hip neck back hand wrist foot ankle leg arm min minute minutes sets set reps exs ex exercise exercises short arc lever long full range of motion no not on in at to up down patient home pain session day week times every each'.split(' '));
+function soundKey(w) {
+  let x = w.toLowerCase().replace(/[^a-z]/g, ''); if (!x) return '';
+  x = x.replace(/^(kn|gn|pn|ps)/, 'n').replace(/^wr/, 'r').replace(/^x/, 's').replace(/ph/g, 'f').replace(/ck/g, 'k').replace(/sch/g, 'sk').replace(/(sh|ch|tio|tia)/g, 'x')
+    .replace(/th/g, '0').replace(/c(?=[eiy])/g, 's').replace(/c/g, 'k').replace(/q/g, 'k').replace(/x/g, 'ks').replace(/z/g, 's').replace(/dg(?=[eiy])/g, 'j')
+    .replace(/g(?=[eiy])/g, 'j').replace(/gh/g, '').replace(/v/g, 'f').replace(/d/g, 't').replace(/y(?![aeiou])/g, '').replace(/w(?![aeiou])/g, '');
+  return (x[0] + x.slice(1).replace(/[aeiouhyw]/g, '')).replace(/(.)\1+/g, '$1');
+}
+function lev(a, b) { const d = Array.from({ length: a.length + 1 }, (_, i) => [i]); for (let j = 1; j <= b.length; j++) d[0][j] = j;
+  for (let i = 1; i <= a.length; i++) for (let j = 1; j <= b.length; j++) d[i][j] = Math.min(d[i - 1][j] + 1, d[i][j - 1] + 1, d[i - 1][j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1)); return d[a.length][b.length]; }
+const TERM_KEYS = PT_TERMS.filter((t) => t.replace(/[^a-z]/gi, '').length >= 6 && t !== t.toUpperCase()).map((t) => ({ t, k: soundKey(t), n: t.toLowerCase().replace(/[^a-z]/g, '') }));
+const KNOWN = new Set(PT_TERMS.map((t) => t.toLowerCase()));
+// Returns [{from, to}] for words (or 2-3 word runs) that sound like a clinic term but are not one.
+function ptSuggest(text) {
+  const words = String(text || '').split(/[^A-Za-z']+/).filter(Boolean); const out = []; const seen = new Set();
+  for (let n = 3; n >= 1; n--) for (let i = 0; i + n <= words.length; i++) {
+    const run = words.slice(i, i + n); const from = run.join(' '); const flat = from.toLowerCase().replace(/[^a-z]/g, '');
+    if (flat.length < 5 || run.every((w) => COMMON.has(w.toLowerCase())) || KNOWN.has(from.toLowerCase()) || seen.has(from.toLowerCase())) continue;
+    if (n === 1 && (COMMON.has(flat) || KNOWN.has(flat))) continue;
+    const k = soundKey(flat);
+    let best = null;
+    for (const c of TERM_KEYS) {
+      if (c.n === flat) { best = null; break; }
+      const kd = lev(k, c.k), sd = lev(flat, c.n);
+      if (kd <= (c.k.length >= 6 ? 1 : 0) && sd <= Math.max(2, Math.floor(c.n.length * 0.4)) && (!best || sd < best.sd)) best = { to: c.t, sd };
+    }
+    if (best) { out.push({ from, to: best.to }); seen.add(from.toLowerCase()); }
+  }
+  return out.filter((s, i) => !out.some((o, j) => j !== i && o.from.length > s.from.length && o.from.toLowerCase().includes(s.from.toLowerCase()))).slice(0, 6);
+}
+function bestAlt(result) { let best = result[0]; for (let i = 1; i < result.length; i++) if (ptScore(result[i].transcript) > ptScore(best.transcript)) best = result[i]; return best.transcript; }
+
 const voice = (() => {
   let framed = true; try { framed = window.self !== window.top; } catch { framed = true; }
   const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
   const v = { framed, active: null, busy: '', mode: framed ? 'none' : SR ? 'service' : (navigator.mediaDevices?.getUserMedia && window.MediaRecorder ? 'device' : 'none') };
   v.label = () => (v.mode === 'device' ? 'Record' : 'Speak');
   let rec = null, recorder = null, stream = null, chunks = [], asr = null, base = '';
-  const setText = (sec, t) => { doc.secs[sec].text = t; const box = editing === sec ? $('#ed-text') : null; if (box) box.value = t; render(); };
+  const setText = (sec, t) => { doc.secs[sec].text = t; const box = editing === sec ? $('#ed-text') : null; if (box) box.value = t; render(); suggSoon(); };
   const note = (t, warn) => { const n = $('#ed-note'); n.textContent = t; n.className = warn ? 'warn' : 'note'; };
   const finish = () => { v.active = null; v.busy = ''; render(); syncEdMic(); };
   v.start = (sec) => {
@@ -421,11 +575,11 @@ const voice = (() => {
   v.toggle = (sec) => { if (v.framed || v.mode === 'none') return note('The page cannot open the microphone here. Tap the box, then the microphone on your keyboard.', true); return v.active === sec ? v.stop() : v.start(sec); };
   const PERM = 'Chrome has the microphone off for this page: tap the icon at the left of the address bar → Permissions → Microphone → Allow, then reload. If you opened the link inside WhatsApp, open it in Chrome or Safari.';
   function startService(sec) {
-    rec = new SR(); rec.lang = 'en-US'; rec.continuous = true; rec.interimResults = true;
+    rec = new SR(); rec.lang = 'en-US'; rec.continuous = true; rec.interimResults = true; rec.maxAlternatives = 5;
     let got = false; const mine = rec; note('Listening… speak, then tap the microphone again to stop.');
     rec.onresult = (ev) => { got = true; let fin = '', mid = '';
-      for (let i = 0; i < ev.results.length; i++) (ev.results[i].isFinal ? (fin += ev.results[i][0].transcript + ' ') : (mid += ev.results[i][0].transcript));
-      setText(sec, [base, fin.trim(), mid].filter(Boolean).join(' ')); };
+      for (let i = 0; i < ev.results.length; i++) (ev.results[i].isFinal ? (fin += bestAlt(ev.results[i]) + ' ') : (mid += ev.results[i][0].transcript));
+      setText(sec, [base, ptFix(fin), ptFix(mid)].filter(Boolean).join(' ')); };
     rec.onerror = (ev) => {
       if (rec !== mine) return; rec = null; try { mine.abort(); } catch { /* ignore */ }
       if (ev.error === 'not-allowed') note(PERM, true);
@@ -457,7 +611,7 @@ const voice = (() => {
         const audio = (await ctx.decodeAudioData(buf)).getChannelData(0); ctx.close?.();
         const out = await (await loadAsr())(audio, { chunk_length_s: 30 });
         const t = String(out?.text || '').trim();
-        if (t) { setText(sec, [base, t].filter(Boolean).join(' ')); note('Done. Tap the microphone to add more.'); } else note('Nothing was heard. Try again closer to the phone.', true);
+        if (t) { setText(sec, [base, ptFix(t)].filter(Boolean).join(' ')); note('Done. Tap the microphone to add more.'); } else note('Nothing was heard. Try again closer to the phone.', true);
       } catch { note('Could not turn the recording into text here (the voice model needs internet the first time). Use the keyboard microphone.', true); }
       finish();
     };
