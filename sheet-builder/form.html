@@ -111,9 +111,10 @@ const store = {
   set(k, v) { try { localStorage.setItem('vss.' + k, JSON.stringify(v)); } catch { /* storage blocked */ } },
 };
 const todayText = () => { const d = new Date(); return `${d.getDate()}/${d.getMonth() + 1}/${d.getFullYear()}`; };
-const blank = () => ({ header: {}, clinic: store.get('clinic', { name: '', code: '' }),
+const blank = () => ({ foot: { title: 'Physician', name: '', date: '', time: '', ink: [] }, header: {}, clinic: store.get('clinic', { name: '', code: '' }),
   secs: Object.fromEntries(SECS.map((s) => [s.id, { text: s.id === 'date' ? todayText() : '', ink: [], extra: 0 }])), order: [] });
 let doc = store.get('draft', null) || blank();
+doc.foot = doc.foot || { title: 'Physician', name: '', date: '', time: '', ink: [] };
 for (const s of SECS) doc.secs[s.id] = doc.secs[s.id] || { text: '', ink: [], extra: 0 };
 let mode = 'type', penColor = 'blue', layout = null;
 const save = () => store.set('draft', doc);
@@ -230,15 +231,25 @@ function drawHeader(ctx) {
   ctx.font = 'bold 21px Arial'; ctx.fillStyle = '#1A1A1A'; ctx.fillText('PHYSICAL MEDICINE', rx, M + 56);
   ctx.font = '17px Arial'; ctx.fillText('RHEUMATOLOGY &', rx, M + 78); ctx.fillText('REHABILITATION', rx, M + 99);
 }
+const FOOT_COLS = [0, 150, 310, 490, 600, CW], FOOT_HH = 30, FOOT_RH = 38;
+function fitText(ctx, t, x, y, w) { let size = 21; while (size > 12) { ctx.font = `${size}px Caveat, cursive`; if (ctx.measureText(t).width <= w) break; size -= 1; } ctx.fillText(t, x, y); }
+const inFoot = (pi, y) => layout.pages[pi].footY != null && y >= layout.pages[pi].footY && y <= layout.pages[pi].footY + FOOT_HH + FOOT_RH;
 function drawFooter(ctx, y) {
-  const cols = [0, 150, 310, 490, 600, CW]; const hh = 30, rh = 38;
+  const cols = FOOT_COLS, hh = FOOT_HH, rh = FOOT_RH;
   ctx.strokeStyle = '#1A1A1A'; ctx.lineWidth = 1.2; ctx.strokeRect(M, y, CW, hh + rh);
   ctx.beginPath(); ctx.moveTo(M, y + hh); ctx.lineTo(M + CW, y + hh);
   for (const c of cols.slice(1, -1)) { ctx.moveTo(M + c, y); ctx.lineTo(M + c, y + hh + rh); }
   ctx.stroke();
   ctx.font = 'bold 12px Arial'; ctx.fillStyle = '#1A1A1A'; ctx.textAlign = 'center';
   ['TITLE', 'NAME', 'SIGNATURE', 'DATE', 'TIME'].forEach((t, i) => ctx.fillText(t, M + (cols[i] + cols[i + 1]) / 2, y + 20));
-  ctx.textAlign = 'left'; ctx.fillText('Physician', M + 8, y + hh + 24);
+  const f = doc.foot;
+  ctx.textAlign = 'left'; ctx.fillText(f.title || 'Physician', M + 8, y + hh + 24);
+  ctx.font = '21px Caveat, cursive'; ctx.fillStyle = INK.blue;
+  [[1, f.name], [3, f.date], [4, f.time]].forEach(([i, t]) => { if (t) fitText(ctx, t, M + cols[i] + 8, y + hh + 26, cols[i + 1] - cols[i] - 14); });
+  ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+  for (const k of f.ink) { ctx.strokeStyle = INK[k.c] || INK.blue; ctx.lineWidth = 2; ctx.beginPath();
+    k.pts.forEach(([x, yy], j) => (j ? ctx.lineTo(x, y + yy) : ctx.moveTo(x, y + yy))); ctx.stroke(); }
+  ctx.fillStyle = '#1A1A1A';
   if (doc.clinic.code) { ctx.font = 'bold 10px Arial'; ctx.textAlign = 'right'; ctx.fillText(doc.clinic.code, PW - M, y + hh + rh + 14); ctx.textAlign = 'left'; }
 }
 
@@ -278,8 +289,13 @@ function bindCanvas(cv) {
     const pi = +cv.dataset.page; const [x, y] = toPage(cv, e);
     if (mode === 'type') {
       if (layout.pages[pi].first && y < M + HEADER_H - 10) return openEditor('header');
+      if (inFoot(pi, y)) return openEditor('foot');
       const row = rowAt(pi, y); if (row) openEditor(row.sec);
       return;
+    }
+    if (inFoot(pi, y)) {
+      e.preventDefault(); cv.setPointerCapture(e.pointerId);
+      sec = 'foot'; stroke = { c: penColor, pts: [[x, y - layout.pages[pi].footY]] }; doc.foot.ink.push(stroke); doc.order.push('foot'); return;
     }
     const row = rowAt(pi, y); if (!row || row.kind !== 'row') return;
     e.preventDefault(); cv.setPointerCapture(e.pointerId);
@@ -288,12 +304,14 @@ function bindCanvas(cv) {
   });
   cv.addEventListener('pointermove', (e) => {
     if (!stroke) return; const pi = +cv.dataset.page; const [x, y] = toPage(cv, e);
+    if (sec === 'foot') { const fy = layout.pages[pi].footY; stroke.pts.push([Math.max(M, Math.min(PW - M, x)), Math.max(0, Math.min(FOOT_HH + FOOT_RH, y - fy))]); return redraw(pi); }
     const row = rowAt(pi, y);
     if (row && row.sec === sec && row.kind === 'row') stroke.pts.push([x, row.r * L + (y - row.y)]);
     redraw(pi);
   });
   const end = () => {
     if (!stroke) return;
+    if (sec === 'foot') { stroke = null; sec = null; render(); return refreshUndo(); }
     // writing on the last line of a part opens one more line (the sheet grows onto a new page if needed)
     const st = doc.secs[sec]; const maxRow = Math.max(...stroke.pts.map((p) => Math.floor(p[1] / L)));
     const rows = layout.pages.flatMap((p) => p.rows).filter((r) => r.sec === sec && r.kind === 'row').length;
@@ -308,10 +326,10 @@ function redraw(pi) {
   drawPage(ctx, layout.pages[pi], pi, layout.pages.length);
 }
 function refreshUndo() { document.getElementById('undo').hidden = !(mode === 'pen' && doc.order.length); }
-document.getElementById('undo').onclick = () => { const s = doc.order.pop(); if (s) { doc.secs[s].ink.pop(); render(); } refreshUndo(); };
+document.getElementById('undo').onclick = () => { const s = doc.order.pop(); if (s) { (s === 'foot' ? doc.foot : doc.secs[s]).ink.pop(); render(); } refreshUndo(); };
 function setMode(m) {
   mode = m; document.getElementById('mode-type').setAttribute('aria-pressed', m === 'type'); document.getElementById('mode-pen').setAttribute('aria-pressed', m === 'pen');
-  document.getElementById('hint').textContent = m === 'pen' ? 'Write on the lines with your finger or pen. Writing on the last line of a part adds another line.' : 'Tap a microphone and speak, or tap any line to type. Switch to Pen to write by hand.';
+  document.getElementById('hint').textContent = m === 'pen' ? 'Write on the lines with your finger or pen, and sign in the table at the bottom. Writing on the last line of a part adds another line.' : 'Tap a microphone and speak, or tap any line or the table to type. Switch to Pen to write by hand.';
   closeEditor(); render(); refreshUndo();
 }
 document.getElementById('mode-type').onclick = () => setMode('type');
@@ -333,6 +351,19 @@ function openEditor(sec, opts = {}) {
     $('#ed-mic').hidden = true; $('#ed-clear').hidden = true; $('#ed-note').textContent = 'Clinic name and form code are remembered on this device for the next sheets.';
     return;
   }
+  if (sec === 'foot') {
+    const f = doc.foot;
+    $('#ed-title').textContent = 'Signature table';
+    $('#ed-body').innerHTML = `<div class="fields">
+      <label for="f-title">Title<input id="f-title" data-f="title" value="${esc(f.title)}" autocomplete="off"></label>
+      <label for="f-name">Name<input id="f-name" data-f="name" value="${esc(f.name)}" autocomplete="off"></label>
+      <label for="f-date">Date<input id="f-date" data-f="date" value="${esc(f.date)}" autocomplete="off"></label>
+      <label for="f-time">Time<input id="f-time" data-f="time" value="${esc(f.time)}" autocomplete="off"></label></div>
+      <div class="row" style="margin-top:8px"><button class="btn" type="button" id="f-now">Now</button><span class="note">fills today’s date and the time</span></div>`;
+    $('#ed-mic').hidden = true; $('#ed-clear').hidden = false;
+    $('#ed-note').textContent = 'To sign: tap Done, switch to Pen, and sign in the SIGNATURE box.';
+    return;
+  }
   const s = SECS.find((x) => x.id === sec);
   $('#ed-title').textContent = s.name; $('#ed-mic').hidden = false; $('#ed-clear').hidden = false;
   $('#ed-body').innerHTML = sec === 'date' ? `<input id="ed-text" value="${esc(doc.secs.date.text)}" autocomplete="off">` : `<textarea id="ed-text" placeholder="Speak or type ${esc(s.name.toLowerCase())}…">${esc(doc.secs[sec].text)}</textarea>`;
@@ -343,9 +374,17 @@ function openEditor(sec, opts = {}) {
 }
 function closeEditor() { if (voice.active) voice.stop(); editing = null; $('#editor').hidden = true; }
 $('#ed-done').onclick = closeEditor;
-$('#ed-clear').onclick = () => { if (!editing) return; const st = doc.secs[editing]; st.text = ''; st.ink = []; st.extra = 0; doc.order = doc.order.filter((s) => s !== editing); const t = $('#ed-text'); if (t) t.value = ''; render(); refreshUndo(); };
+$('#ed-clear').onclick = () => { if (!editing) return;
+  if (editing === 'foot') { doc.foot = { title: 'Physician', name: '', date: '', time: '', ink: [] }; doc.order = doc.order.filter((s) => s !== 'foot'); closeEditor(); render(); return refreshUndo(); }
+  const st = doc.secs[editing]; st.text = ''; st.ink = []; st.extra = 0; doc.order = doc.order.filter((s) => s !== editing); const t = $('#ed-text'); if (t) t.value = ''; render(); refreshUndo(); };
+$('#ed-body').addEventListener('click', (e) => {
+  if (e.target.id !== 'f-now') return;
+  const d = new Date(); doc.foot.date = todayText(); doc.foot.time = d.toTimeString().slice(0, 5);
+  $('#f-date').value = doc.foot.date; $('#f-time').value = doc.foot.time; render();
+});
 $('#ed-body').addEventListener('input', (e) => {
-  const h = e.target.dataset.h, c = e.target.dataset.c;
+  const h = e.target.dataset.h, c = e.target.dataset.c, f = e.target.dataset.f;
+  if (f) { doc.foot[f] = e.target.value; render(); }
   if (h) { doc.header[h] = e.target.value; render(); }
   if (c) { doc.clinic[c] = e.target.value; store.set('clinic', doc.clinic); render(); }
 });
@@ -436,6 +475,7 @@ function sheetText() {
   const who = HEADER_FIELDS.filter(([k]) => h[k]).map(([k, l]) => `${l}: ${h[k]}`); if (who.length) out.push(...who, '');
   out.push(doc.secs.date.text);
   for (const s of SECS.slice(1)) { out.push('', s.label); out.push(doc.secs[s.id].text || (doc.secs[s.id].ink.length ? '(handwritten)' : '—')); }
+  const f = doc.foot; out.push('', [f.title || 'Physician', f.name, f.ink.length ? '(signed)' : '', f.date, f.time].filter(Boolean).join('  ·  '));
   return out.join('\n');
 }
 $('#copy').onclick = async () => { try { await navigator.clipboard.writeText(sheetText()); say('Copied.'); } catch { say('Copy is blocked here.'); } };
